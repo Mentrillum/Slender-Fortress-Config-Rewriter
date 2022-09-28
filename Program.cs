@@ -181,6 +181,10 @@ namespace SF2MConfigRewrite
                         }
                     }
                     profileFile = builder.ToString();
+                    if (!Directory.Exists(targetDirectory + newDirectory))
+                    {
+                        Directory.CreateDirectory(targetDirectory + newDirectory);
+                    }
                     string newFile = targetDirectory + newDirectory + profileFile + ".cfg";
                     List<string> newLines = new List<string>();
                     for (int i2 = i; i2 <= continueTo; i2++)

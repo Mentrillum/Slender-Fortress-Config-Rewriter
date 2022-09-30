@@ -2093,7 +2093,29 @@ namespace SF2MConfigRewrite
                             }
                             else
                             {
-                                rewriteSections = true;
+                                int bracketIndex = 0, bracketLine = i;
+                                while (bracketLine < globalLine.Count && !globalLine[bracketLine].Contains('{'))
+                                {
+                                    bracketLine++;
+                                }
+                                bracketLine++;
+                                while (bracketIndex >= 0 && bracketLine < globalLine.Count)
+                                {
+                                    if (globalLine[bracketLine].Contains('{'))
+                                    {
+                                        bracketIndex++;
+                                    }
+                                    else if (globalLine[bracketLine].Contains('}'))
+                                    {
+                                        bracketIndex--;
+                                    }
+                                    bracketLine++;
+                                }
+                                bracketLine--;
+                                if (bracketCheck != bracketLine)
+                                {
+                                    rewriteSections = true;
+                                }
                             }
                         }
                     }
@@ -2180,7 +2202,29 @@ namespace SF2MConfigRewrite
                             }
                             else
                             {
-                                rewriteSections = true;
+                                int bracketIndex = 0, bracketLine = i;
+                                while (bracketLine < globalLine.Count && !globalLine[bracketLine].Contains('{'))
+                                {
+                                    bracketLine++;
+                                }
+                                bracketLine++;
+                                while (bracketIndex >= 0 && bracketLine < globalLine.Count)
+                                {
+                                    if (globalLine[bracketLine].Contains('{'))
+                                    {
+                                        bracketIndex++;
+                                    }
+                                    else if (globalLine[bracketLine].Contains('}'))
+                                    {
+                                        bracketIndex--;
+                                    }
+                                    bracketLine++;
+                                }
+                                bracketLine--;
+                                if (bracketCheck != bracketLine)
+                                {
+                                    rewriteSections = true;
+                                }
                             }
                         }
                     }
@@ -2267,7 +2311,29 @@ namespace SF2MConfigRewrite
                             }
                             else
                             {
-                                rewriteSections = true;
+                                int bracketIndex = 0, bracketLine = i;
+                                while (bracketLine < globalLine.Count && !globalLine[bracketLine].Contains('{'))
+                                {
+                                    bracketLine++;
+                                }
+                                bracketLine++;
+                                while (bracketIndex >= 0 && bracketLine < globalLine.Count)
+                                {
+                                    if (globalLine[bracketLine].Contains('{'))
+                                    {
+                                        bracketIndex++;
+                                    }
+                                    else if (globalLine[bracketLine].Contains('}'))
+                                    {
+                                        bracketIndex--;
+                                    }
+                                    bracketLine++;
+                                }
+                                bracketLine--;
+                                if (bracketCheck != bracketLine)
+                                {
+                                    rewriteSections = true;
+                                }
                             }
                         }
                     }
@@ -2354,7 +2420,29 @@ namespace SF2MConfigRewrite
                             }
                             else
                             {
-                                rewriteSections = true;
+                                int bracketIndex = 0, bracketLine = i;
+                                while (bracketLine < globalLine.Count && !globalLine[bracketLine].Contains('{'))
+                                {
+                                    bracketLine++;
+                                }
+                                bracketLine++;
+                                while (bracketIndex >= 0 && bracketLine < globalLine.Count)
+                                {
+                                    if (globalLine[bracketLine].Contains('{'))
+                                    {
+                                        bracketIndex++;
+                                    }
+                                    else if (globalLine[bracketLine].Contains('}'))
+                                    {
+                                        bracketIndex--;
+                                    }
+                                    bracketLine++;
+                                }
+                                bracketLine--;
+                                if (bracketCheck != bracketLine)
+                                {
+                                    rewriteSections = true;
+                                }
                             }
                         }
                     }
@@ -2441,7 +2529,29 @@ namespace SF2MConfigRewrite
                             }
                             else
                             {
-                                rewriteSections = true;
+                                int bracketIndex = 0, bracketLine = i;
+                                while (bracketLine < globalLine.Count && !globalLine[bracketLine].Contains('{'))
+                                {
+                                    bracketLine++;
+                                }
+                                bracketLine++;
+                                while (bracketIndex >= 0 && bracketLine < globalLine.Count)
+                                {
+                                    if (globalLine[bracketLine].Contains('{'))
+                                    {
+                                        bracketIndex++;
+                                    }
+                                    else if (globalLine[bracketLine].Contains('}'))
+                                    {
+                                        bracketIndex--;
+                                    }
+                                    bracketLine++;
+                                }
+                                bracketLine--;
+                                if (bracketCheck != bracketLine)
+                                {
+                                    rewriteSections = true;
+                                }
                             }
                         }
                     }

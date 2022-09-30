@@ -2093,10 +2093,6 @@ namespace SF2MConfigRewrite
                             }
                             else
                             {
-                                bracketCheck = originalPosition;
-                            }
-                            if (bracketCheck < globalLine.Count && globalLine[bracketCheck].Contains('{'))
-                            {
                                 rewriteSections = true;
                             }
                         }
@@ -2183,10 +2179,6 @@ namespace SF2MConfigRewrite
                                 break;
                             }
                             else
-                            {
-                                bracketCheck = originalPosition;
-                            }
-                            if (bracketCheck < globalLine.Count && globalLine[bracketCheck].Contains('{'))
                             {
                                 rewriteSections = true;
                             }
@@ -2275,10 +2267,6 @@ namespace SF2MConfigRewrite
                             }
                             else
                             {
-                                bracketCheck = originalPosition;
-                            }
-                            if (bracketCheck < globalLine.Count && globalLine[bracketCheck].Contains('{'))
-                            {
                                 rewriteSections = true;
                             }
                         }
@@ -2366,10 +2354,6 @@ namespace SF2MConfigRewrite
                             }
                             else
                             {
-                                bracketCheck = originalPosition;
-                            }
-                            if (bracketCheck < globalLine.Count && globalLine[bracketCheck].Contains('{'))
-                            {
                                 rewriteSections = true;
                             }
                         }
@@ -2456,10 +2440,6 @@ namespace SF2MConfigRewrite
                                 break;
                             }
                             else
-                            {
-                                bracketCheck = originalPosition;
-                            }
-                            if (bracketCheck < globalLine.Count && globalLine[bracketCheck].Contains('{'))
                             {
                                 rewriteSections = true;
                             }

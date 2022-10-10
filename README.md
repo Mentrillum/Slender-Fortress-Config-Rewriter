@@ -17,22 +17,10 @@ A required tool for Slender Fortress Modified 1.7.5+ that rewrites boss configs.
 * Visual Studio 2022+
 
 # How To Use
-### Single configs
+### Single and multiple configs
 
-Take whatever config files you want, copy them and paste them in any empty folder (or leave them in their original server directories). The config rewriter will look for sub folders so be aware about that if you don't want certain configs to be accidentally rewritten.
+Take whatever config files you want, copy them and paste them in any empty folder (or leave them in their original server directories). The config rewriter will look for sub folders so be aware about that if you don't want certain configs to be accidentally rewritten. Any config files with more than 1 boss in them will be split up automatically.
 ![Capture](https://user-images.githubusercontent.com/42941613/192687536-33faff3f-2ae9-421a-95ef-30ad9665ea69.PNG)
-
-### Configs with multiple bosses
-
-Currently the config rewriter is not able to split up configs with multiple bosses in them that isn't boss packs or profiles.cfg. Start off by looking for the start of the second boss.
-
-![Capture](https://user-images.githubusercontent.com/42941613/192687939-554b8705-8bdf-4633-aefe-e1a636be97c6.PNG)
-
-Highlight select the start of the second boss' profile and select more lines until you reach the end of the second boss' profile.
-
-![Capture](https://user-images.githubusercontent.com/42941613/192688120-29fc7745-3269-49ff-8744-1191beaa1ac6.PNG)
-
-Copy all of the text and delete it in the original config. Paste the text in a new file and save it as the profile name (or name it whatever you want, its for staying organized) with a .cfg as the extension name. Repeat until the original config has only one config.
 
 ### profiles.cfg
 

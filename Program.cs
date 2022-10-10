@@ -32,6 +32,7 @@ namespace SF2MConfigRewrite
             Console.ReadKey(true);
             Console.WriteLine("Rewriting configs...");
             Stopwatch sw = Stopwatch.StartNew();
+            SplitAllConfigs(directory);
             ProcessDirectory(directory);
             TimeSpan ts = sw.Elapsed;
 
@@ -40,6 +41,40 @@ namespace SF2MConfigRewrite
                 ts.Milliseconds / 10);
             Console.WriteLine("Rewrote " + filesFound + " config files in " + elapsedTime);
             Console.ReadKey(true);
+        }
+
+        static void SplitAllConfigs(string targetDirectory)
+        {
+            string[] fileEntries = Directory.GetFiles(targetDirectory);
+            foreach (string fileName in fileEntries)
+            {
+                string extension = Path.GetExtension(fileName);
+                if (extension == ".cfg")
+                {
+                    if (fileName.Contains("\\profiles.cfg")) // Split this guy up
+                    {
+                        //FixConfig(fileName);
+                        SplitConfig(fileName, targetDirectory, "/profiles/");
+                    }
+                    else if (fileName.Contains("\\profiles_packs.cfg")) // Search in this
+                    {
+                        SearchPacksConfig(fileName, targetDirectory);
+                    }
+                    else
+                    {
+                        if (!fileName.Contains("\\class_stats.cfg") && !fileName.Contains("\\restrictedweapons.cfg") && !fileName.Contains("\\specialrounds.cfg"))
+                        {
+                            SplitConfig(fileName, targetDirectory);
+                        }
+                    }
+                }
+            }
+
+            string[] subdirectoryEntries = Directory.GetDirectories(targetDirectory);
+            foreach (string subdirectory in subdirectoryEntries)
+            {
+                ProcessDirectory(subdirectory);
+            }
         }
 
         // Functions
@@ -51,22 +86,10 @@ namespace SF2MConfigRewrite
                 string extension = Path.GetExtension(fileName);
                 if (extension == ".cfg")
                 {
-                    if (fileName.Contains("profiles.cfg")) // Split this guy up
+                    if (!fileName.Contains("\\class_stats.cfg") && !fileName.Contains("\\restrictedweapons.cfg") && !fileName.Contains("\\specialrounds.cfg") && !fileName.Contains("\\profiles.cfg") && !fileName.Contains("\\profiles_packs.cfg"))
                     {
-                        //FixConfig(fileName);
-                        SplitConfig(fileName, targetDirectory);
-                    }
-                    else if (fileName.Contains("profiles_packs.cfg")) // Search in this
-                    {
-                        SearchPacksConfig(fileName, targetDirectory);
-                    }
-                    else
-                    {
-                        if (!fileName.Contains("class_stats.cfg") && !fileName.Contains("restrictedweapons.cfg") && !fileName.Contains("specialrounds.cfg"))
-                        {
-                            RewriteConfig(fileName);
-                        }
-                    }
+                        RewriteConfig(fileName);
+                    }               
                 }
             }
 
@@ -129,6 +152,91 @@ namespace SF2MConfigRewrite
             }
         }
 
+        static void SplitConfig(string fileName, string targetDirectory)
+        {
+            KeyValues kv = new KeyValues();
+            if (!File.Exists(fileName))
+            {
+                return;
+            }
+            List<string> globalLine = File.ReadAllLines(fileName).ToList<string>();
+            int bracketIndex = 0;
+            bool doNotDelete = false;
+            bool splitConfig = false;
+            bool message = false;
+            for (int i = 0; i < globalLine.Count; i++)
+            {
+                string profileName = string.Empty;
+                if (globalLine[i].Contains('\"'))
+                {
+                    int tempLine = i;
+                    while (!globalLine[tempLine].Contains('{'))
+                    {
+                        tempLine++;
+                    }
+                    bracketIndex++;
+                    tempLine++;
+                    char[] arr = globalLine[i].ToCharArray();
+                    StringBuilder builder = new StringBuilder();
+                    for (int character = 0; character < arr.Length; character++)
+                    {
+                        if (char.IsLetterOrDigit(arr[character]) || (IsCharSymbol(arr[character]) && arr[character] == '\"'))
+                        {
+                            builder.Append(arr[character]);
+                        }
+                    }
+                    profileName = builder.ToString();
+                    while (bracketIndex > 0 && tempLine < globalLine.Count)
+                    {
+                        if (globalLine[tempLine].Contains('{'))
+                        {
+                            bracketIndex++;
+                        }
+                        if (globalLine[tempLine].Contains('}'))
+                        {
+                            bracketIndex--;
+                        }
+                        tempLine++;
+                    }
+                    int checkIndex = tempLine;
+                    while (checkIndex < globalLine.Count)
+                    {
+                        if (globalLine[checkIndex].Contains('\"'))
+                        {
+                            splitConfig = true;
+                            break;
+                        }
+                        checkIndex++;
+                    }
+                    if (!splitConfig)
+                    {
+                        return;
+                    }
+                    if (!message)
+                    {
+                        Console.WriteLine("Splitting " + fileName);
+                        message = true;
+                    }
+                    List<string> newLines = new List<string>();
+                    for (int i2 = i; i2 < tempLine; i2++)
+                    {
+                        newLines.Add(globalLine[i2]);
+                    }
+                    string newDirectory = targetDirectory + "\\" + profileName + ".cfg";
+                    if (File.Exists(newDirectory))
+                    {
+                        doNotDelete = true;
+                    }
+                    File.WriteAllLines(newDirectory, newLines);
+                    i = tempLine - 1;
+                }
+            }
+            if (!doNotDelete)
+            {
+                File.Delete(fileName);
+            }
+        }
+
         static void SplitConfig(string fileName, string targetDirectory, string newDirectory = "/profiles/", bool deleteFile = false)
         {
             if (!File.Exists(fileName))
@@ -175,7 +283,7 @@ namespace SF2MConfigRewrite
                     StringBuilder builder = new StringBuilder();
                     for (int character = 0; character < arr.Length; character++)
                     {
-                        if (char.IsLetterOrDigit(arr[character]))
+                        if (char.IsLetterOrDigit(arr[character]) || (IsCharSymbol(arr[character]) && arr[character] == '\"'))
                         {
                             builder.Append(arr[character]);
                         }

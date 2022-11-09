@@ -1030,6 +1030,53 @@ namespace SF2MConfigRewrite
             text = text.Replace("\"sound_player_death\"", "\"sound_player_deathcam\"");
 
             text = text.Replace("\"sound_player_death_all\"", "\"sound_player_deathcam_all\"");
+
+            text = text.Replace("\"engine_sound\"", "\"constant_sound\"");
+
+            text = text.Replace("\"engine_sound_level\"", "\"constant_sound_level\"");
+
+            text = text.Replace("\"engine_sound_volume\"", "\"constant_sound_volume\"");
+
+            text = ReplaceDifficultyKeyValue(text, "search_range", "search_view_distance");
+
+            text = ReplaceDifficultyKeyValue(text, "search_sound_range", "hearing_range");
+
+            text = ReplaceDifficultyKeyValue(text, "search_alert_gracetime", "alert_gracetime");
+
+            text = ReplaceDifficultyKeyValue(text, "search_chase_duration", "chase_duration");
+
+            text = ReplaceDifficultyKeyValue(text, "search_chase_duration_add_visible_min", "chase_duration_add_visible_min");
+
+            text = ReplaceDifficultyKeyValue(text, "search_chase_duration_add_visible_max", "chase_duration_add_visible_max");
+
+            text = ReplaceDifficultyKeyValue(text, "search_chase_persistency_time_init", "chase_persistency_time_init");
+
+            text = ReplaceDifficultyKeyValue(text, "search_chase_persistency_time_init_attack", "chase_persistency_time_init_attack");
+
+            text = ReplaceDifficultyKeyValue(text, "search_chase_persistency_time_add_attack", "chase_persistency_time_add_attack");
+
+            text = ReplaceDifficultyKeyValue(text, "search_chase_persistency_time_init_newtarget", "chase_persistency_time_init_newtarget");
+
+            text = ReplaceDifficultyKeyValue(text, "search_chase_persistency_time_add_newtarget", "chase_persistency_time_add_newtarget");
+
+            text = ReplaceDifficultyKeyValue(text, "search_chase_persistency_time_add_visible_min", "chase_persistency_time_add_visible_min");
+
+            text = ReplaceDifficultyKeyValue(text, "search_chase_persistency_time_add_visible_min", "chase_persistency_time_add_visible_min");
+
+            text = ReplaceDifficultyKeyValue(text, "search_chase_persistency_time_add_visible_max", "chase_persistency_time_add_visible_max");
+
+            text = ReplaceDifficultyKeyValue(text, "search_chase_persistency_time_init_stun", "chase_persistency_time_init_stun");
+
+            text = ReplaceDifficultyKeyValue(text, "search_chase_persistency_time_add_stun", "chase_persistency_time_add_stun");
+
+            text = ReplaceDifficultyKeyValue(text, "search_wander_range_min", "wander_range_min");
+
+            text = ReplaceDifficultyKeyValue(text, "search_wander_range_max", "wander_range_max");
+
+            text = ReplaceDifficultyKeyValue(text, "search_wander_time_min", "wander_time_min");
+
+            text = ReplaceDifficultyKeyValue(text, "search_wander_time_max", "wander_time_max");
+
             File.WriteAllText(fileName, text);
 
             ReplaceAnimationNames(fileName, text, "animation_idle");

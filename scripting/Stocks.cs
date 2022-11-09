@@ -157,6 +157,23 @@ public static class Stocks
         File.WriteAllText(fileName, text);
     }
 
+    public static string ReplaceDifficultyKeyValue(string text, string keyValue, string newKeyValue)
+    {
+        text = text.Replace("\"" + keyValue + "\"", "\"" + newKeyValue + "\"");
+
+        text = text.Replace("\"" + keyValue + "_easy\"", "\"" + newKeyValue + "_easy\"");
+
+        text = text.Replace("\"" + keyValue + "_hard\"", "\"" + newKeyValue + "_hard\"");
+
+        text = text.Replace("\"" + keyValue + "_insane\"", "\"" + newKeyValue + "_insane\"");
+
+        text = text.Replace("\"" + keyValue + "_nightmare\"", "\"" + newKeyValue + "_nightmare\"");
+
+        text = text.Replace("\"" + keyValue + "_apollyon\"", "\"" + newKeyValue + "_apollyon\"");
+
+        return text;
+    }
+
     public static void RewriteMultiSoundSections(string baseKeyName, string fileName, List<string> line, List<string> floatSoundParams, List<int> intSoundParams, KeyValues kv)
     {
         floatSoundParams.Clear();

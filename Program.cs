@@ -1043,6 +1043,8 @@ namespace SF2MConfigRewrite
 
             text = ReplaceDifficultyKeyValue(text, "search_alert_gracetime", "alert_gracetime");
 
+            text = ReplaceDifficultyKeyValue(text, "search_alert_duration", "alert_duration");
+
             text = ReplaceDifficultyKeyValue(text, "search_chase_duration", "chase_duration");
 
             text = ReplaceDifficultyKeyValue(text, "search_chase_duration_add_visible_min", "chase_duration_add_visible_min");

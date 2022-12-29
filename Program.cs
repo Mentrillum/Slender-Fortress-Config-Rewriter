@@ -414,6 +414,18 @@ namespace SF2MConfigRewrite
                 }
             }
 
+            for (int i = 0; i < globalLine.Count; i++)
+            {
+                if (globalLine[i].Contains("\"mod_precache\"") || globalLine[i].Contains("\"mod_download\"") || globalLine[i].Contains("\"sound_precache\""))
+                {
+                    while (!globalLine[i].Contains('}'))
+                    {
+                        globalLine.RemoveAt(i);
+                    }
+                    globalLine.RemoveAt(i);
+                }
+            }
+
             // Add "attacks" section if needed
             bool foundAttacks = false;
             for (int i = 0; i < globalLine.Count; i++)

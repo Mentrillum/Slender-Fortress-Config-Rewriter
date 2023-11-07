@@ -78,7 +78,7 @@ namespace SF2MConfigRewriteV2.Keys
 				}
 				for (int i2 = 0; i2 < arr.Length; i2++)
 				{
-					if (arr[i2] == '\\' || arr[i2] == '/')
+					if ((arr[i2] == '\\' || arr[i2] == '/') && quoteCheck % 2 == 0)
 					{
 						if (i2 + 1 < arr.Length && (arr[i2 + 1] == '\\' || arr[i2 + 1] == '/'))
 						{
@@ -133,6 +133,11 @@ namespace SF2MConfigRewriteV2.Keys
 								currentKeys.IsSection.Add(false);
 							}
 						}
+					}
+					if (splittedKeys.Length > 3 && index == 1)
+					{
+						currentKeys.Keys[index].Add("");
+						currentKeys.IsSection.Add(false);
 					}
 					currentKeys.Indexes.Add(i);
 				}

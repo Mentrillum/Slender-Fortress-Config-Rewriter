@@ -54,6 +54,7 @@ namespace SF2MConfigRewriteV2
 			KeyValues kv = new KeyValues();
 			List<string> globalLine;
 			int index = 0;
+			bool success = true;
 			for (int file = 0; file < configsList.Items.Count; file++)
 			{
 				string fileName = files[file];
@@ -135,7 +136,13 @@ namespace SF2MConfigRewriteV2
 				ReplaceAnimationNames(fileName, text, "animation_death");
 				globalLine = File.ReadAllLines(fileName).ToList<string>();
 
-				kv.ReadFromFile(fileName);
+				bool read = kv.ReadFromFile(fileName);
+				if (!read)
+				{
+					progressBox.Text = "Failed to rewrite " + configsList.Items[file];
+					success = false;
+					break;
+				}
 
 				if (kv.JumpToKey("animations"))
 				{
@@ -226,6 +233,8 @@ namespace SF2MConfigRewriteV2
 						}
 						while (!globalLine[index].Contains('}'));
 						globalLine.RemoveAt(index);
+						kv.ReadFromFile(globalLine);
+						kv.JumpToKey("attributes");
 					}
 
 					if (kv.JumpToKey("alert copies"))
@@ -239,6 +248,8 @@ namespace SF2MConfigRewriteV2
 						}
 						while (!globalLine[index].Contains('}'));
 						globalLine.RemoveAt(index);
+						kv.ReadFromFile(globalLine);
+						kv.JumpToKey("attributes");
 					}
 
 					kv.GoBack();
@@ -1611,8 +1622,11 @@ namespace SF2MConfigRewriteV2
 						InsertKeyValue(ref globalLine, ref index, "\"sounds\"");
 						InsertKeyValue(ref globalLine, ref index, "{");
 
-						ProfileSound sound = rageSounds[0];
-						sound.InsertSection("start", ref globalLine, ref index, kv);
+						if (rageSounds.Count > 0)
+						{
+							ProfileSound sound = rageSounds[0];
+							sound.InsertSection("start", ref globalLine, ref index, kv);
+						}
 
 						if (goHeal)
 						{
@@ -1675,12 +1689,15 @@ namespace SF2MConfigRewriteV2
 						InsertKeyValue(ref globalLine, ref index, "\"sounds\"");
 						InsertKeyValue(ref globalLine, ref index, "{");
 
-						sound = rageSounds[0];
-						if (rageSounds.Count > 1)
+						if (rageSounds.Count > 0)
 						{
-							sound = rageSounds[1];
+							ProfileSound sound = rageSounds[0];
+							if (rageSounds.Count > 1)
+							{
+								sound = rageSounds[1];
+							}
+							sound.InsertSection("start", ref globalLine, ref index, kv);
 						}
-						sound.InsertSection("start", ref globalLine, ref index, kv);
 
 						if (goHeal)
 						{
@@ -1743,12 +1760,15 @@ namespace SF2MConfigRewriteV2
 						InsertKeyValue(ref globalLine, ref index, "\"sounds\"");
 						InsertKeyValue(ref globalLine, ref index, "{");
 
-						sound = rageSounds[0];
-						if (rageSounds.Count > 2)
+						if (rageSounds.Count > 0)
 						{
-							sound = rageSounds[2];
+							ProfileSound sound = rageSounds[0];
+							if (rageSounds.Count > 2)
+							{
+								sound = rageSounds[2];
+							}
+							sound.InsertSection("start", ref globalLine, ref index, kv);
 						}
-						sound.InsertSection("start", ref globalLine, ref index, kv);
 
 						if (goHeal)
 						{
@@ -2232,7 +2252,10 @@ namespace SF2MConfigRewriteV2
 				GC.WaitForPendingFinalizers();
 			}
 
-			progressBox.Text = "Finished rewriting " + configsList.Items.Count + " config(s)!";
+			if (success)
+			{
+				progressBox.Text = "Finished rewriting " + configsList.Items.Count + " config(s)!";
+			}
 		}
 
 		private void clearButton_Click(object sender, EventArgs e)

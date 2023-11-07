@@ -78,6 +78,13 @@ namespace SF2MConfigRewriteV2.Keys
 				}
 				for (int i2 = 0; i2 < arr.Length; i2++)
 				{
+					if (arr[i2] == '\\' || arr[i2] == '/')
+					{
+						if (i2 + 1 < arr.Length && (arr[i2 + 1] == '\\' || arr[i2 + 1] == '/'))
+						{
+							break;
+						}
+					}
 					if (arr[i2] == '\"')
 					{
 						quoteCheck++;
@@ -167,9 +174,12 @@ namespace SF2MConfigRewriteV2.Keys
 		{
 			for (int i = 0; i < this.Root.Peek().Keys[0].Count; i++)
 			{
-				if (this.Root.Peek().IsSection[i])
+				if (i < this.Root.Peek().IsSection.Count)
 				{
-					continue;
+					if (this.Root.Peek().IsSection[i])
+					{
+						continue;
+					}
 				}
 
 				if (this.Root.Peek().Keys[0][i] == key)

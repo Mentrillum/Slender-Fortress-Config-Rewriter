@@ -530,6 +530,10 @@ namespace SF2MConfigRewriteV2.Keys
 			do
 			{
 				index = this.Root.Peek().Keys[0].IndexOf(name);
+				if (index == -1)
+				{
+					return -1;
+				}
 			}
 			while (!this.Root.Peek().IsSection[index]);
 			index = this.Root.Peek().Indexes[index];

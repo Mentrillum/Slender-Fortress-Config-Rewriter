@@ -1159,6 +1159,10 @@ namespace SF2MConfigRewriteV2
 					else
 					{
 						index = kv.GetSectionIndex("animations");
+						if (index == -1)
+						{
+							index = kv.GetKeyIndex("cloak_enable");
+						}
 						InsertKeyValue(ref globalLine, ref index, "\"postures\"");
 						InsertKeyValue(ref globalLine, ref index, "{");
 
@@ -1999,6 +2003,10 @@ namespace SF2MConfigRewriteV2
 					else
 					{
 						index = kv.GetSectionIndex("animations");
+						if (index == -1)
+						{
+							index = kv.GetKeyIndex("crawling_enabled");
+						}
 						InsertKeyValue(ref globalLine, ref index, "\"postures\"");
 						InsertKeyValue(ref globalLine, ref index, "{");
 

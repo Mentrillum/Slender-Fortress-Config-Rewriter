@@ -36,6 +36,7 @@
 			textBox1 = new TextBox();
 			progressBox = new TextBox();
 			clearButton = new Button();
+			textBox2 = new TextBox();
 			SuspendLayout();
 			// 
 			// openFileDialog1
@@ -125,12 +126,27 @@
 			clearButton.UseVisualStyleBackColor = true;
 			clearButton.Click += clearButton_Click;
 			// 
+			// textBox2
+			// 
+			textBox2.Anchor = AnchorStyles.Right;
+			textBox2.BackColor = Color.Black;
+			textBox2.BorderStyle = BorderStyle.None;
+			textBox2.Font = new Font("Segoe UI", 15F, FontStyle.Bold, GraphicsUnit.Point);
+			textBox2.ForeColor = Color.White;
+			textBox2.Location = new Point(432, 12);
+			textBox2.Name = "textBox2";
+			textBox2.Size = new Size(356, 27);
+			textBox2.TabIndex = 7;
+			textBox2.Text = "Version 1.03";
+			textBox2.TextAlign = HorizontalAlignment.Right;
+			// 
 			// FormMain
 			// 
 			AutoScaleDimensions = new SizeF(7F, 15F);
 			AutoScaleMode = AutoScaleMode.Font;
 			BackColor = Color.Black;
 			ClientSize = new Size(800, 450);
+			Controls.Add(textBox2);
 			Controls.Add(clearButton);
 			Controls.Add(progressBox);
 			Controls.Add(textBox1);
@@ -153,5 +169,6 @@
 		private TextBox textBox1;
 		private TextBox progressBox;
 		private Button clearButton;
+		private TextBox textBox2;
 	}
 }

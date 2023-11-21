@@ -1,1206 +1,914 @@
-﻿using System.Diagnostics;
+﻿
+using SF2MConfigRewriteV2.Keys;
+using System.Collections.Generic;
 using System.Text;
-using System.Text.RegularExpressions;
-using SF2MConfigRewrite;
+using System.Windows.Forms;
+using System.Xml.Linq;
 
-public static class Stocks
-{ 
-    public static string BreakMultiSoundDown(string line)
-    {
-        StringBuilder stringBuilder = new StringBuilder();
-        byte quoteCheck = 0;
-        char[] arr = line.ToCharArray();
-        for (int i2 = 0; i2 < arr.Length; i2++)
-        {
-            if (arr[i2] == '\"')
-            {
-                quoteCheck++;
-                if (quoteCheck > 2)
-                {
-                    break;
-                }
-            }
-            if (char.IsLetterOrDigit(arr[i2]) || arr[i2] == '_')
-            {
-                stringBuilder.Append(arr[i2]);
-            }
-        }
-        string returnValue = stringBuilder.ToString();
-        return returnValue;
-    }
-    public static bool IsCharSymbol(char c)
-    {
-        if (c == '-' || c == '/' || c == '{' || c == '}' || c == '[' || c == ']' || c == '(' || c == ')' || c == '<' || c == '>' || c == '!' ||
-            c == '?' || c == '=' || c == '+' || c == '|' || c == '\\' || c == '/' || c == '\'' || c == '@' || c == '#' || c == '$' || c == '%' || c == '^'
-            || c == '^' || c == '&' || c == '*' || c == '_' || c == '.' || c == '`' || c == '~' || c == ';' || c == ':' || c == ',')
-        {
-            return true;
-        }
-        return false;
-    }
+namespace Stocks
+{
+	public enum Difficulty
+	{
+		Easy = 0,
+		Normal,
+		Hard,
+		Insane,
+		Nightmare,
+		Apollyon,
+		Max
+	};
 
-    public static void WriteAnimationSection(List<string> keys, string baseKey, List<string> line, int firstIndex, out int storedIndex)
-    {
-        line.Insert(firstIndex, "\t\t\t\"" + baseKey + "\"");
-        firstIndex++;
-        line.Insert(firstIndex, "\t\t\t{");
-        firstIndex++;
-        line.Insert(firstIndex, "\t\t\t\t\"1\"");
-        firstIndex++;
-        line.Insert(firstIndex, "\t\t\t\t{");
-        firstIndex++;
+	public static class Stock
+	{
+		public static void InsertKeyValue(ref List<string> lines, ref int index, string key)
+		{
+			lines.Insert(index, key);
+			index++;
+		}
 
-        string newKey = string.Empty;
-        for (int i = 0; i < keys.Count; i++)
-        {
-            newKey = "\t\t\t\t\t" + keys[i];
-            line.Insert(firstIndex, newKey);
-            firstIndex++;
-        }
-        line.Insert(firstIndex, "\t\t\t\t}");
-        firstIndex++;
-        line.Insert(firstIndex, "\t\t\t}");
-        firstIndex++;
-        storedIndex = firstIndex;
-    }
+		public static void InsertAttackIndexes(ref List<int> indexes, string value)
+		{
+			indexes.Clear();
+			if (value.Contains(' '))
+			{
+				string[] subKey = value.Split(' ');
+				foreach (string str in subKey)
+				{
+					indexes.Add(int.Parse(str));
+				}
+			}
+			else
+			{
+				char[] arr;
+				arr = value.ToCharArray();
+				for (int k = 0; k < arr.Length; k++)
+				{
+					indexes.Add(arr[k] - '0');
+				}
+			}
+		}
 
-    public static void AddFootstepIntervals(List<string> line, string footstepInterval, string baseAnimationName)
-    {
-        for (int i = 0; i < line.Count; i++)
-        {
-            if (line[i].Contains("\"" + baseAnimationName + "\""))
-            {
-                int bracketIndex = 1;
-                int bracketCheck = i;
-                while (!line[bracketCheck].Contains("{"))
-                {
-                    bracketCheck++;
-                }
-                while (!line[bracketCheck].Contains("\""))
-                {
-                    bracketCheck++;
-                }
-                for (int j = bracketCheck; j < line.Count; j++)
-                {
-                    if (line[j].Contains("}"))
-                    {
-                        bracketIndex--;
-                        if (bracketIndex <= 0)
-                        {
-                            return;
-                        }
-                    }
-                    if (line[j].Contains("{"))
-                    {
-                        bracketIndex++;
-                        while (!line[j].Contains("}"))
-                        {
-                            j++;
-                        }
-                        bracketIndex--;
-                        if (footstepInterval != "0.0" && footstepInterval != "0")
-                        {
-                            line.Insert(j, "\"animation_" + baseAnimationName + "_footstepinterval\" \"" + footstepInterval + "\"");
-                        }
-                        j++;
-                    }
-                }
-            }
-        }
-    }
+		public static void InsertAnimationSection(ref List<string> lines, ref int index, string section, List<ProfileAnimation> animations, KeyValues kv)
+		{
+			InsertKeyValue(ref lines, ref index, "\"" + section + "\"");
+			InsertKeyValue(ref lines, ref index, "{");
 
-    public static void ReplaceAnimationNames(string fileName, string text, string keyName, bool ignoreDifficulty = false)
-    {
-        text = File.ReadAllText(fileName);
-        text = text.Replace("\"" + keyName + "\"", "\"name\"");
+			float cycle = 0.0f;
+			float rate = 1.0f;
+			float duration = 0.0f;
+			float footstep = 0.0f;
+			string name = string.Empty;
+			for (int i = 0; i < animations.Count; i++)
+			{
+				InsertKeyValue(ref lines, ref index, "\"" + (i + 1) + "\"");
+				InsertKeyValue(ref lines, ref index, "{");
 
-        text = text.Replace("\"" + keyName + "_playbackrate\"", "\"playbackrate\"");
+				for (int i2 = 1; i2 < (int)Difficulty.Max; i2++)
+				{
+					if (animations[i].Animations[i2] != name)
+					{
+						name = animations[i].Animations[i2];
+						InsertKeyValue(ref lines, ref index, "\"" + kv.GetProfileKeyWithDifficultySuffix("name", (Difficulty)i2) + "\" \"" + name + "\"");
+					}
+				}
 
-        text = text.Replace("\"" + keyName + "_footstepinterval\"", "\"footstepinterval\"");
+				for (int i2 = 1; i2 < (int)Difficulty.Max; i2++)
+				{
+					if (animations[i].Playbackrates[i2] != rate)
+					{
+						rate = animations[i].Playbackrates[i2];
+						InsertKeyValue(ref lines, ref index, "\"" + kv.GetProfileKeyWithDifficultySuffix("rate", (Difficulty)i2) + "\" \"" + kv.FormatFloat(rate) + "\"");
+					}
+				}
 
-        text = text.Replace("\"" + keyName + "_cycle\"", "\"cycle\"");
+				for (int i2 = 1; i2 < (int)Difficulty.Max; i2++)
+				{
+					if (animations[i].Cycles[i2] != cycle)
+					{
+						cycle = animations[i].Cycles[i2];
+						InsertKeyValue(ref lines, ref index, "\"" + kv.GetProfileKeyWithDifficultySuffix("cycle", (Difficulty)i2) + "\" \"" + kv.FormatFloat(cycle) + "\"");
+					}
+				}
 
-        if (!ignoreDifficulty)
-        {
-            text = text.Replace("\"" + keyName + "_hard\"", "\"name_hard\"");
+				for (int i2 = 1; i2 < (int)Difficulty.Max; i2++)
+				{
+					if (animations[i].Durations[i2] != duration)
+					{
+						duration = animations[i].Durations[i2];
+						InsertKeyValue(ref lines, ref index, "\"" + kv.GetProfileKeyWithDifficultySuffix("duration", (Difficulty)i2) + "\" \"" + kv.FormatFloat(duration) + "\"");
+					}
+				}
 
-            text = text.Replace("\"" + keyName + "_hard_playbackrate\"", "\"playbackrate_hard\"");
+				for (int i2 = 1; i2 < (int)Difficulty.Max; i2++)
+				{
+					if (animations[i].FootstepIntervals[i2] != footstep)
+					{
+						footstep = animations[i].FootstepIntervals[i2];
+						InsertKeyValue(ref lines, ref index, "\"" + kv.GetProfileKeyWithDifficultySuffix("footstepinterval", (Difficulty)i2) + "\" \"" + kv.FormatFloat(footstep) + "\"");
+					}
+				}
 
-            text = text.Replace("\"" + keyName + "_hard_footstepinterval\"", "\"footstepinterval_hard\"");
+				InsertKeyValue(ref lines, ref index, "}");
+				InsertKeyValue(ref lines, ref index, "");
+			}
 
-            text = text.Replace("\"" + keyName + "_hard_cycle\"", "\"cycle_hard\"");
+			InsertKeyValue(ref lines, ref index, "}");
+		}
 
-            text = text.Replace("\"" + keyName + "_insane\"", "\"name_insane\"");
+		public static void StoreAnimationData(ref List<ProfileAnimation> animations, KeyValues kv)
+		{
+			if (kv.GotoFirstSubKey())
+			{
+				do
+				{
+					ProfileAnimation animation = new ProfileAnimation();
+					kv.GetDifficultyValues("name", out animation.Animations, animation.Animations);
+					kv.GetDifficultyValues("playbackrate", out animation.Playbackrates, animation.Playbackrates);
+					kv.GetDifficultyValues("cycle", out animation.Cycles, animation.Cycles);
+					kv.GetDifficultyValues("footstepinterval", out animation.FootstepIntervals, animation.FootstepIntervals);
+					kv.GetDifficultyValues("duration", out animation.Durations, animation.Durations);
+					animations.Add(animation);
+				}
+				while (kv.GotoNextKey());
 
-            text = text.Replace("\"" + keyName + "_insane_playbackrate\"", "\"playbackrate_insane\"");
+				kv.GoBack();
+			}
+			kv.GoBack();
+		}
 
-            text = text.Replace("\"" + keyName + "_insane_footstepinterval\"", "\"footstepinterval_insane\"");
+		public static void ReplaceAnimationNames(string fileName, string text, string keyName, bool ignoreDifficulty = false)
+		{
+			text = File.ReadAllText(fileName);
+			text = text.Replace("\"" + keyName + "\"", "\"name\"");
 
-            text = text.Replace("\"" + keyName + "_insane_cycle\"", "\"cycle_insane\"");
+			text = text.Replace("\"" + keyName + "_playbackrate\"", "\"playbackrate\"");
 
-            text = text.Replace("\"" + keyName + "_nightmare\"", "\"name_nightmare\"");
+			text = text.Replace("\"" + keyName + "_footstepinterval\"", "\"footstepinterval\"");
 
-            text = text.Replace("\"" + keyName + "_nightmare_playbackrate\"", "\"playbackrate_nightmare\"");
+			text = text.Replace("\"" + keyName + "_cycle\"", "\"cycle\"");
 
-            text = text.Replace("\"" + keyName + "_nightamre_footstepinterval\"", "\"footstepinterval_nightmare\"");
+			if (!ignoreDifficulty)
+			{
+				text = text.Replace("\"" + keyName + "_hard\"", "\"name_hard\"");
 
-            text = text.Replace("\"" + keyName + "_nightmare_cycle\"", "\"cycle_nightmare\"");
+				text = text.Replace("\"" + keyName + "_hard_playbackrate\"", "\"playbackrate_hard\"");
 
-            text = text.Replace("\"" + keyName + "_apollyon\"", "\"name_apollyon\"");
+				text = text.Replace("\"" + keyName + "_hard_footstepinterval\"", "\"footstepinterval_hard\"");
 
-            text = text.Replace("\"" + keyName + "_apollyon_playbackrate\"", "\"playbackrate_apollyon\"");
+				text = text.Replace("\"" + keyName + "_hard_cycle\"", "\"cycle_hard\"");
 
-            text = text.Replace("\"" + keyName + "_apollyon_footstepinterval\"", "\"footstepinterval_apollyon\"");
+				text = text.Replace("\"" + keyName + "_insane\"", "\"name_insane\"");
 
-            text = text.Replace("\"" + keyName + "_apollyon_cycle\"", "\"cycle_apollyon\"");
-        }
-        File.WriteAllText(fileName, text);
-    }
+				text = text.Replace("\"" + keyName + "_insane_playbackrate\"", "\"playbackrate_insane\"");
 
-    public static string ReplaceDifficultyKeyValue(string text, string keyValue, string newKeyValue)
-    {
-        text = text.Replace("\"" + keyValue + "\"", "\"" + newKeyValue + "\"");
+				text = text.Replace("\"" + keyName + "_insane_footstepinterval\"", "\"footstepinterval_insane\"");
 
-        text = text.Replace("\"" + keyValue + "_easy\"", "\"" + newKeyValue + "_easy\"");
+				text = text.Replace("\"" + keyName + "_insane_cycle\"", "\"cycle_insane\"");
 
-        text = text.Replace("\"" + keyValue + "_hard\"", "\"" + newKeyValue + "_hard\"");
+				text = text.Replace("\"" + keyName + "_nightmare\"", "\"name_nightmare\"");
 
-        text = text.Replace("\"" + keyValue + "_insane\"", "\"" + newKeyValue + "_insane\"");
+				text = text.Replace("\"" + keyName + "_nightmare_playbackrate\"", "\"playbackrate_nightmare\"");
 
-        text = text.Replace("\"" + keyValue + "_nightmare\"", "\"" + newKeyValue + "_nightmare\"");
+				text = text.Replace("\"" + keyName + "_nightamre_footstepinterval\"", "\"footstepinterval_nightmare\"");
 
-        text = text.Replace("\"" + keyValue + "_apollyon\"", "\"" + newKeyValue + "_apollyon\"");
+				text = text.Replace("\"" + keyName + "_nightmare_cycle\"", "\"cycle_nightmare\"");
 
-        return text;
-    }
+				text = text.Replace("\"" + keyName + "_apollyon\"", "\"name_apollyon\"");
 
-    public static void RewriteMultiSoundSections(string baseKeyName, string fileName, List<string> line, List<string> floatSoundParams, List<int> intSoundParams, KeyValues kv)
-    {
-        floatSoundParams.Clear();
-        floatSoundParams.Add("1.0"); // Volume
-        floatSoundParams.Add("1.5"); // Cooldown Min
-        floatSoundParams.Add("1.5"); // Cooldown Max
-        intSoundParams.Clear();
-        intSoundParams.Add(0); // Channel
-        intSoundParams.Add(0); // Flags
-        intSoundParams.Add(90); // Level
-        intSoundParams.Add(100); // Pitch
-        intSoundParams.Add(100); // Pitch Random Min
-        intSoundParams.Add(100); // Pitch Random Max
-        for (int i = 0; i < line.Count; i++)
-        {
-            if (line[i].Contains("\"" + baseKeyName + "_volume\""))
-            {
-                floatSoundParams[0] = kv.GetFloat(baseKeyName + "_volume", i);
-            }
-            if (line[i].Contains("\"" + baseKeyName + "_cooldown_min\""))
-            {
-                floatSoundParams[1] = kv.GetFloat(baseKeyName + "_cooldown_min", i);
-            }
-            if (line[i].Contains("\"" + baseKeyName + "_cooldown_max\""))
-            {
-                floatSoundParams[2] = kv.GetFloat(baseKeyName + "_cooldown_max", i);
-            }
-            if (line[i].Contains("\"" + baseKeyName + "_channel\""))
-            {
-                intSoundParams[0] = kv.GetNum(baseKeyName + "_channel", i);
-            }
-            if (line[i].Contains("\"" + baseKeyName + "_flags\""))
-            {
-                intSoundParams[1] = kv.GetNum(baseKeyName + "_flags", i);
-            }
-            if (line[i].Contains("\"" + baseKeyName + "_level\""))
-            {
-                intSoundParams[2] = kv.GetNum(baseKeyName + "_level", i);
-            }
-            if (line[i].Contains("\"" + baseKeyName + "_pitch\""))
-            {
-                intSoundParams[3] = kv.GetNum(baseKeyName + "_pitch", i);
-            }
-            if (line[i].Contains("\"" + baseKeyName + "_pitch_random_min\""))
-            {
-                intSoundParams[4] = kv.GetNum(baseKeyName + "_pitch_random_min", i);
-            }
-            if (line[i].Contains("\"" + baseKeyName + "_pitch_random_max\""))
-            {
-                intSoundParams[5] = kv.GetNum(baseKeyName + "_pitch_random_max", i);
-            }
-        }
-        for (int i = 0; i < line.Count; i++)
-        {
-            if (line[i].Contains("\"" + baseKeyName + "\""))
-            {
-                byte bracketIndex = 1;
-                int bracketCheck = i;
-                while (!line[bracketCheck].Contains('{'))
-                {
-                    bracketCheck++;
-                }
-                while (!line[bracketCheck].Contains('\"'))
-                {
-                    bracketCheck++;
-                }
-                for (int j = bracketCheck; j < line.Count; j++)
-                {
-                    if (line[j].Contains('}'))
-                    {
-                        bracketIndex--;
-                        if (bracketIndex < 1)
-                        {
-                            break;
-                        }
-                    }
-                    if (line[j].Contains('{'))
-                    {
-                        bracketIndex++;
-                        j++;
-                        bool doSpace = false;
-                        if (floatSoundParams[0] != "1.0" && floatSoundParams[0] != "1")
-                        {
-                            line.Insert(j, "\"volume\" \"" + floatSoundParams[0] + "\"");
-                            j++;
-                            doSpace = true;
-                        }
-                        if (floatSoundParams[1] != "1.5")
-                        {
-                            line.Insert(j, "\"cooldown_min\" \"" + floatSoundParams[1] + "\"");
-                            j++;
-                            doSpace = true;
-                        }
-                        if (floatSoundParams[2] != "1.5")
-                        {
-                            line.Insert(j, "\"cooldown_max\" \"" + floatSoundParams[2] + "\"");
-                            j++;
-                            doSpace = true;
-                        }
-                        if (intSoundParams[0] != 0)
-                        {
-                            line.Insert(j, "\"channel\" \"" + intSoundParams[0] + "\"");
-                            j++;
-                            doSpace = true;
-                        }
-                        if (intSoundParams[1] != 0)
-                        {
-                            line.Insert(j, "\"flags\" \"" + intSoundParams[1] + "\"");
-                            j++;
-                            doSpace = true;
-                        }
-                        if (intSoundParams[2] != 90)
-                        {
-                            line.Insert(j, "\"level\" \"" + intSoundParams[2] + "\"");
-                            j++;
-                            doSpace = true;
-                        }
-                        if (intSoundParams[3] != 100)
-                        {
-                            line.Insert(j, "\"pitch\" \"" + intSoundParams[3] + "\"");
-                            j++;
-                            doSpace = true;
-                        }
-                        if (intSoundParams[4] != 100)
-                        {
-                            line.Insert(j, "\"pitch_random_min\" \"" + intSoundParams[4] + "\"");
-                            j++;
-                            doSpace = true;
-                        }
-                        if (intSoundParams[5] != 100)
-                        {
-                            line.Insert(j, "\"pitch_random_max\" \"" + intSoundParams[5] + "\"");
-                            j++;
-                            doSpace = true;
-                        }
-                        if (doSpace)
-                        {
-                            line.Insert(j, "");
-                            j++;
-                        }
-                        line.Insert(j, "\"paths\"");
-                        j++;
-                        line.Insert(j, "{");
-                        j++;
-                        while (!line[j].Contains('}'))
-                        {
-                            j++;
-                        }
-                        line.Insert(j, "}");
-                        bracketCheck = j;
-                    }
-                }
-            }
-        }
-        File.WriteAllLines(fileName, line);
-    }
+				text = text.Replace("\"" + keyName + "_apollyon_playbackrate\"", "\"playbackrate_apollyon\"");
 
-    public static void ChangeMultiSoundSections(string baseKeyName, string fileName, List<string> line, KeyValues kv, bool splitSections)
-    {
-        List<List<string>> listCeptionSounds = new List<List<string>>();
-        List<List<string>> listCeptionFloats = new List<List<string>>();
-        List<List<int>> listCeptionInts = new List<List<int>>();
-        List<byte> tempIndexes = new List<byte>();
-        List<byte> attackIndexes = new List<byte>();
-        StringBuilder stringBuilder;
-        for (int i = 0; i < line.Count; i++)
-        {
-            if (line[i].Contains("\"" + baseKeyName) && (line[i].Contains("_volume\"") || line[i].Contains("_pitch\"")
-                || line[i].Contains("_flags\"") || line[i].Contains("_level\"") || line[i].Contains("_cooldown_min\"")
-                || line[i].Contains("_cooldown_max\"") || line[i].Contains("_pitch_random_min\"") || line[i].Contains("_pitch_random_max\"") || line[i].Contains("_channel\"")))
-            {
-                List<string> tempFloatSoundParams;
-                List<int> tempIntSoundParams;
-                stringBuilder = new StringBuilder();
-                byte byteIndex = 0, quoteCheck = 0;
-                char[] arr = line[i].ToCharArray();
-                for (int i2 = 0; i2 < arr.Length; i2++)
-                {
-                    if (arr[i2] == '\"')
-                    {
-                        quoteCheck++;
-                        if (quoteCheck == 2)
-                        {
-                            break;
-                        }
-                    }
-                    if (char.IsDigit(arr[i2]))
-                    {
-                        stringBuilder.Append(arr[i2]);
-                    }
-                }
-                if (stringBuilder.Length <= 0)
-                {
-                    stringBuilder.Append('1');
-                }
-                byteIndex = byte.Parse(stringBuilder.ToString());
-                if (tempIndexes.Count > 0)
-                {
-                    int index = tempIndexes.IndexOf(byteIndex);
-                    if (index == -1)
-                    {
-                        tempIndexes.Add(byteIndex);
-                        tempFloatSoundParams = new List<string>();
-                        tempIntSoundParams = new List<int>();
-                        tempFloatSoundParams.Add("1.0"); // Volume
-                        tempFloatSoundParams.Add("1.5"); // Cooldown Min
-                        tempFloatSoundParams.Add("1.5"); // Cooldown Max
-                        tempIntSoundParams.Add(0); // Channel
-                        tempIntSoundParams.Add(0); // Flags
-                        tempIntSoundParams.Add(90); // Level
-                        tempIntSoundParams.Add(100); // Pitch
-                        tempIntSoundParams.Add(100); // Pitch Random Min
-                        tempIntSoundParams.Add(100); // Pitch Random Max
-                        switch (line[i])
-                        {
-                            case string a when line[i].Contains("_volume\""):
-                                a = BreakMultiSoundDown(line[i]);
-                                tempFloatSoundParams[0] = kv.GetFloat(a, i).ToString();
-                                break;
-                            case string a when line[i].Contains("_cooldown_min\""):
-                                a = BreakMultiSoundDown(line[i]);
-                                tempFloatSoundParams[1] = kv.GetFloat(a, i).ToString();
-                                break;
-                            case string a when line[i].Contains("_cooldown_max\""):
-                                a = BreakMultiSoundDown(line[i]);
-                                tempFloatSoundParams[2] = kv.GetFloat(a, i).ToString();
-                                break;
-                            case string a when line[i].Contains("_channel\""):
-                                a = BreakMultiSoundDown(line[i]);
-                                tempIntSoundParams[0] = kv.GetNum(a, i);
-                                break;
-                            case string a when line[i].Contains("_flags\""):
-                                a = BreakMultiSoundDown(line[i]);
-                                tempIntSoundParams[1] = kv.GetNum(a, i);
-                                break;
-                            case string a when line[i].Contains("_level\""):
-                                a = BreakMultiSoundDown(line[i]);
-                                tempIntSoundParams[2] = kv.GetNum(a, i);
-                                break;
-                            case string a when line[i].Contains("_pitch\""):
-                                a = BreakMultiSoundDown(line[i]);
-                                tempIntSoundParams[3] = kv.GetNum(a, i);
-                                break;
-                            case string a when line[i].Contains("_pitch_random_min\""):
-                                a = BreakMultiSoundDown(line[i]);
-                                tempIntSoundParams[4] = kv.GetNum(a, i);
-                                break;
-                            case string a when line[i].Contains("_pitch_random_max\""):
-                                a = BreakMultiSoundDown(line[i]);
-                                tempIntSoundParams[5] = kv.GetNum(a, i);
-                                break;
-                        }
-                        listCeptionFloats.Add(tempFloatSoundParams);
-                        listCeptionInts.Add(tempIntSoundParams);
-                    }
-                    else
-                    {
-                        tempFloatSoundParams = listCeptionFloats[index];
-                        tempIntSoundParams = listCeptionInts[index];
-                        switch (line[i])
-                        {
-                            case string a when line[i].Contains("_volume\""):
-                                a = BreakMultiSoundDown(line[i]);
-                                tempFloatSoundParams[0] = kv.GetFloat(a, i).ToString();
-                                break;
-                            case string a when line[i].Contains("_cooldown_min\""):
-                                a = BreakMultiSoundDown(line[i]);
-                                tempFloatSoundParams[1] = kv.GetFloat(a, i).ToString();
-                                break;
-                            case string a when line[i].Contains("_cooldown_max\""):
-                                a = BreakMultiSoundDown(line[i]);
-                                tempFloatSoundParams[2] = kv.GetFloat(a, i).ToString();
-                                break;
-                            case string a when line[i].Contains("_channel\""):
-                                a = BreakMultiSoundDown(line[i]);
-                                tempIntSoundParams[0] = kv.GetNum(a, i);
-                                break;
-                            case string a when line[i].Contains("_flags\""):
-                                a = BreakMultiSoundDown(line[i]);
-                                tempIntSoundParams[1] = kv.GetNum(a, i);
-                                break;
-                            case string a when line[i].Contains("_level\""):
-                                a = BreakMultiSoundDown(line[i]);
-                                tempIntSoundParams[2] = kv.GetNum(a, i);
-                                break;
-                            case string a when line[i].Contains("_pitch\""):
-                                a = BreakMultiSoundDown(line[i]);
-                                tempIntSoundParams[3] = kv.GetNum(a, i);
-                                break;
-                            case string a when line[i].Contains("_pitch_random_min\""):
-                                a = BreakMultiSoundDown(line[i]);
-                                tempIntSoundParams[4] = kv.GetNum(a, i);
-                                break;
-                            case string a when line[i].Contains("_pitch_random_max\""):
-                                a = BreakMultiSoundDown(line[i]);
-                                tempIntSoundParams[5] = kv.GetNum(a, i);
-                                break;
-                        }
-                        listCeptionFloats[index] = tempFloatSoundParams;
-                        listCeptionInts[index] = tempIntSoundParams;
-                    }
-                }
-                else
-                {
-                    tempIndexes.Add(byteIndex);
-                    tempFloatSoundParams = new List<string>();
-                    tempIntSoundParams = new List<int>();
-                    tempFloatSoundParams.Add("1.0"); // Volume
-                    tempFloatSoundParams.Add("1.5"); // Cooldown Min
-                    tempFloatSoundParams.Add("1.5"); // Cooldown Max
-                    tempIntSoundParams.Add(0); // Channel
-                    tempIntSoundParams.Add(0); // Flags
-                    tempIntSoundParams.Add(90); // Level
-                    tempIntSoundParams.Add(100); // Pitch
-                    tempIntSoundParams.Add(100); // Pitch Random Min
-                    tempIntSoundParams.Add(100); // Pitch Random Max
-                    switch (line[i])
-                    {
-                        case string a when line[i].Contains("_volume\""):
-                            a = BreakMultiSoundDown(line[i]);
-                            tempFloatSoundParams[0] = kv.GetFloat(a, i).ToString();
-                            break;
-                        case string a when line[i].Contains("_cooldown_min\""):
-                            a = BreakMultiSoundDown(line[i]);
-                            tempFloatSoundParams[1] = kv.GetFloat(a, i).ToString();
-                            break;
-                        case string a when line[i].Contains("_cooldown_max\""):
-                            a = BreakMultiSoundDown(line[i]);
-                            tempFloatSoundParams[2] = kv.GetFloat(a, i).ToString();
-                            break;
-                        case string a when line[i].Contains("_channel\""):
-                            a = BreakMultiSoundDown(line[i]);
-                            tempIntSoundParams[0] = kv.GetNum(a, i);
-                            break;
-                        case string a when line[i].Contains("_flags\""):
-                            a = BreakMultiSoundDown(line[i]);
-                            tempIntSoundParams[1] = kv.GetNum(a, i);
-                            break;
-                        case string a when line[i].Contains("_level\""):
-                            a = BreakMultiSoundDown(line[i]);
-                            tempIntSoundParams[2] = kv.GetNum(a, i);
-                            break;
-                        case string a when line[i].Contains("_pitch\""):
-                            a = BreakMultiSoundDown(line[i]);
-                            tempIntSoundParams[3] = kv.GetNum(a, i);
-                            break;
-                        case string a when line[i].Contains("_pitch_random_min\""):
-                            a = BreakMultiSoundDown(line[i]);
-                            tempIntSoundParams[4] = kv.GetNum(a, i);
-                            break;
-                        case string a when line[i].Contains("_pitch_random_max\""):
-                            a = BreakMultiSoundDown(line[i]);
-                            tempIntSoundParams[5] = kv.GetNum(a, i);
-                            break;
-                    }
-                    listCeptionFloats.Add(tempFloatSoundParams);
-                    listCeptionInts.Add(tempIntSoundParams);
-                }
-                line.RemoveAt(i);
-                i--;
-                File.WriteAllLines(fileName, line);
-            }
-        }
-        for (int i = 0; i < line.Count; i++)
-        {
-            if (line[i].Contains("\"" + baseKeyName) && !line[i].Contains("_volume\"") && !line[i].Contains("_pitch\"")
-                && !line[i].Contains("_flags\"") && !line[i].Contains("_level\"") && !line[i].Contains("_channel\"") && !line[i].Contains("_cooldown_min\"")
-                && !line[i].Contains("_cooldown_max\"") && !line[i].Contains("_pitch_random_min\"") && !line[i].Contains("_pitch_random_max\""))
-            {
-                int originalIndex = i;
-                int bracketCheck = i + 2;
-                if (line[bracketCheck + 1].Contains('{'))
-                {
-                    continue;
-                }
-                else
-                {
-                    List<string> attackSoundPaths = new List<string>();
-                    int index = 1;
-                    while (bracketCheck < line.Count - 1 && !line[bracketCheck].Contains('\"') && !line[bracketCheck].Contains('}'))
-                    {
-                        bracketCheck++;
-                    }
-                    if (line[i].Contains("sound_attackenemy"))
-                    {
+				text = text.Replace("\"" + keyName + "_apollyon_footstepinterval\"", "\"footstepinterval_apollyon\"");
 
-                    }
-                    while (!line[bracketCheck].Contains('}'))
-                    {
-                        string s1 = kv.GetString(index.ToString(), bracketCheck);
-                        if (s1 == string.Empty)
-                        {
-                            break;
-                        }
-                        attackSoundPaths.Add(s1);
-                        index++;
-                        bracketCheck++;
-                    }
-                    listCeptionSounds.Add(attackSoundPaths);
-                    if (line[i].Contains("\"" + baseKeyName + "_"))
-                    {
-                        int bracketCheck2 = i;
-                        while (!line[bracketCheck2].Contains('{') && bracketCheck2 < line.Count)
-                        {
-                            bracketCheck2++;
-                        }
-                        stringBuilder = new StringBuilder();
-                        byte byteIndex = 0, quoteCheck = 0;
-                        char[] arr = line[i].ToCharArray();
-                        for (int i2 = 0; i2 < arr.Length; i2++)
-                        {
-                            if (arr[i2] == '\"')
-                            {
-                                quoteCheck++;
-                                if (quoteCheck == 2)
-                                {
-                                    break;
-                                }
-                            }
-                            if (char.IsDigit(arr[i2]))
-                            {
-                                stringBuilder.Append(arr[i2]);
-                            }
-                        }
-                        if (stringBuilder.Length > 0)
-                        {
-                            byteIndex = byte.Parse(stringBuilder.ToString());
-                            if (attackIndexes.IndexOf(byteIndex) == -1)
-                            {
-                                attackIndexes.Add(byteIndex);
-                            }
-                        }
-                        line.RemoveAt(i);
-                        bracketCheck2--;
-                        while (!line[bracketCheck2].Contains('}'))
-                        {
-                            line.RemoveAt(bracketCheck2);
-                        }
-                        line.RemoveAt(bracketCheck2);
-                        i = bracketCheck2 - 1;
-                    }
-                    else if (line[i].Contains("\"" + baseKeyName + "\"") && splitSections)
-                    {
-                        if (attackIndexes.IndexOf(1) == -1)
-                        {
-                            attackIndexes.Add(1);
-                        }
-                        int removeAt = i;
-                        while (!line[removeAt].Contains('{'))
-                        {
-                            removeAt++;
-                        }
-                        removeAt++;
-                        while (!line[removeAt].Contains('}'))
-                        {
-                            line.RemoveAt(removeAt);
-                            i--;
-                        }
-                        i = originalIndex;
-                    }
-                    File.WriteAllLines(fileName, line);
-                }
-            }
-        }
-        bool foundSection = false;
-        for (int i = 0; i < line.Count; i++)
-        {
-            if (line[i].Contains("\"" + baseKeyName + "\""))
-            {
-                foundSection = true;
-                int bracketCheck = i;
-                while (!line[bracketCheck].Contains('}'))
-                {
-                    bracketCheck++;
-                }
-                for (int j = 0; j < attackIndexes.Count; j++)
-                {
-                    line.Insert(bracketCheck, "\"" + attackIndexes[j] + "\"");
-                    bracketCheck++;
-                    line.Insert(bracketCheck, "{");
-                    bracketCheck++;
-                    List<string> attackSoundPaths = listCeptionSounds[j];
-                    if (attackSoundPaths != null)
-                    {
-                        bool bracketIncrease = false;
-                        if (listCeptionFloats.Count > 0 && listCeptionFloats.Count > j)
-                        {
-                            List<string> tempFloatSoundParams = listCeptionFloats[j];
-                            for (int k = 0; k < tempFloatSoundParams.Count; k++)
-                            {
-                                if (k == 0)
-                                {
-                                    if (tempFloatSoundParams[k] == "1.0" || tempFloatSoundParams[k] == "1")
-                                    {
-                                        continue;
-                                    }
-                                    line.Insert(bracketCheck, "\"volume\" \"" + tempFloatSoundParams[k] + "\"");
-                                    bracketCheck++;
-                                    bracketIncrease = true;
-                                }
-                                else
-                                {
-                                    if (tempFloatSoundParams[k] == "1.5")
-                                    {
-                                        continue;
-                                    }
-                                    if (k == 1)
-                                    {
-                                        line.Insert(bracketCheck, "\"cooldown_min\" \"" + tempFloatSoundParams[k] + "\"");
-                                    }
-                                    else
-                                    {
-                                        line.Insert(bracketCheck, "\"cooldown_max\" \"" + tempFloatSoundParams[k] + "\"");
-                                    }
-                                    bracketCheck++;
-                                    bracketIncrease = true;
-                                }
-                            }
-                        }
-                        if (listCeptionInts.Count > 0 && listCeptionInts.Count > j)
-                        {
-                            List<int> tempIntSoundParams = listCeptionInts[j];
-                            for (int k = 0; k < tempIntSoundParams.Count; k++)
-                            {
-                                if (k == 0)
-                                {
-                                    if (tempIntSoundParams[k] == 0)
-                                    {
-                                        continue;
-                                    }
-                                    line.Insert(bracketCheck, "\"channel\" \"" + tempIntSoundParams[k] + "\"");
-                                    bracketCheck++;
-                                    bracketIncrease = true;
-                                }
-                                else if (k == 1)
-                                {
-                                    if (tempIntSoundParams[k] == 0)
-                                    {
-                                        continue;
-                                    }
-                                    line.Insert(bracketCheck, "\"flags\" \"" + tempIntSoundParams[k] + "\"");
-                                    bracketCheck++;
-                                    bracketIncrease = true;
-                                }
-                                else if (k == 2)
-                                {
-                                    if (tempIntSoundParams[k] == 90)
-                                    {
-                                        continue;
-                                    }
-                                    line.Insert(bracketCheck, "\"level\" \"" + tempIntSoundParams[k] + "\"");
-                                    bracketCheck++;
-                                    bracketIncrease = true;
-                                }
-                                else
-                                {
-                                    if (tempIntSoundParams[k] == 100)
-                                    {
-                                        continue;
-                                    }
-                                    if (k == 3)
-                                    {
-                                        line.Insert(bracketCheck, "\"pitch\" \"" + tempIntSoundParams[k] + "\"");
-                                    }
-                                    else if (k == 4)
-                                    {
-                                        line.Insert(bracketCheck, "\"pitch_random_min\" \"" + tempIntSoundParams[k] + "\"");
-                                    }
-                                    else
-                                    {
-                                        line.Insert(bracketCheck, "\"pitch_random_max\" \"" + tempIntSoundParams[k] + "\"");
-                                    }
-                                    bracketCheck++;
-                                    bracketIncrease = true;
-                                }
-                            }
-                        }
-                        if (bracketIncrease)
-                        {
-                            line.Insert(bracketCheck, string.Empty);
-                            bracketCheck++;
-                        }
-                        line.Insert(bracketCheck, "\"paths\"");
-                        bracketCheck++;
-                        line.Insert(bracketCheck, "{");
-                        bracketCheck++;
-                        for (int k = 0; k < attackSoundPaths.Count; k++)
-                        {
-                            line.Insert(bracketCheck, "\"" + (k + 1) + "\" \"" + attackSoundPaths[k] + "\"");
-                            bracketCheck++;
-                        }
-                        line.Insert(bracketCheck, "}");
-                        bracketCheck++;
-                    }
-                    line.Insert(bracketCheck, "}");
-                    bracketCheck++;
-                }
+				text = text.Replace("\"" + keyName + "_apollyon_cycle\"", "\"cycle_apollyon\"");
+			}
+			File.WriteAllText(fileName, text);
+		}
+	}
 
-            }
-        }
-        if (!foundSection)
-        {
-            int newLine = line.Count - 1;
-            line.Insert(newLine, "\"" + baseKeyName + "\"");
-            newLine++;
-            line.Insert(newLine, "{");
-            newLine++;
-            for (int i = 0; i < attackIndexes.Count; i++)
-            {
-                line.Insert(newLine, "\"" + attackIndexes[i] + "\"");
-                newLine++;
-                line.Insert(newLine, "{");
-                newLine++;
-                List<string> attackSoundPaths = listCeptionSounds[i];
-                if (attackSoundPaths != null)
-                {
-                    bool bracketIncrease = false;
-                    if (listCeptionFloats.Count > 0 && listCeptionFloats.Count > i)
-                    {
-                        List<string> tempFloatSoundParams = listCeptionFloats[i];
-                        for (int k = 0; k < tempFloatSoundParams.Count; k++)
-                        {
-                            if (k == 0)
-                            {
-                                if (tempFloatSoundParams[k] == "1.0" || tempFloatSoundParams[k] == "1")
-                                {
-                                    continue;
-                                }
-                                line.Insert(newLine, "\"volume\" \"" + tempFloatSoundParams[k] + "\"");
-                                newLine++;
-                                bracketIncrease = true;
-                            }
-                            else
-                            {
-                                if (tempFloatSoundParams[k] == "1.5")
-                                {
-                                    continue;
-                                }
-                                if (k == 1)
-                                {
-                                    line.Insert(newLine, "\"cooldown_min\" \"" + tempFloatSoundParams[k] + "\"");
-                                }
-                                else
-                                {
-                                    line.Insert(newLine, "\"cooldown_max\" \"" + tempFloatSoundParams[k] + "\"");
-                                }
-                                newLine++;
-                                bracketIncrease = true;
-                            }
-                        }
-                    }
-                    if (listCeptionInts.Count > 0 && listCeptionInts.Count > i)
-                    {
-                        List<int> tempIntSoundParams = listCeptionInts[i];
-                        for (int k = 0; k < tempIntSoundParams.Count; k++)
-                        {
-                            if (k == 0)
-                            {
-                                if (tempIntSoundParams[k] == 0)
-                                {
-                                    continue;
-                                }
-                                line.Insert(newLine, "\"channel\" \"" + tempIntSoundParams[k] + "\"");
-                                newLine++;
-                                bracketIncrease = true;
-                            }
-                            else if (k == 1)
-                            {
-                                if (tempIntSoundParams[k] == 0)
-                                {
-                                    continue;
-                                }
-                                line.Insert(newLine, "\"flags\" \"" + tempIntSoundParams[k] + "\"");
-                                newLine++;
-                                bracketIncrease = true;
-                            }
-                            else if (k == 2)
-                            {
-                                if (tempIntSoundParams[k] == 90)
-                                {
-                                    continue;
-                                }
-                                line.Insert(newLine, "\"level\" \"" + tempIntSoundParams[k] + "\"");
-                                newLine++;
-                                bracketIncrease = true;
-                            }
-                            else
-                            {
-                                if (tempIntSoundParams[k] == 100)
-                                {
-                                    continue;
-                                }
-                                if (k == 3)
-                                {
-                                    line.Insert(newLine, "\"pitch\" \"" + tempIntSoundParams[k] + "\"");
-                                }
-                                else if (k == 4)
-                                {
-                                    line.Insert(newLine, "\"pitch_random_min\" \"" + tempIntSoundParams[k] + "\"");
-                                }
-                                else
-                                {
-                                    line.Insert(newLine, "\"pitch_random_max\" \"" + tempIntSoundParams[k] + "\"");
-                                }
-                                newLine++;
-                                bracketIncrease = true;
-                            }
-                        }
-                    }
-                    if (bracketIncrease)
-                    {
-                        line.Insert(newLine, string.Empty);
-                        newLine++;
-                    }
-                    line.Insert(newLine, "\"paths\"");
-                    newLine++;
-                    line.Insert(newLine, "{");
-                    newLine++;
-                    for (int k = 0; k < attackSoundPaths.Count; k++)
-                    {
-                        line.Insert(newLine, "\"" + (k + 1) + "\" \"" + attackSoundPaths[k] + "\"");
-                        newLine++;
-                    }
-                    line.Insert(newLine, "}");
-                    newLine++;
-                }
-                line.Insert(newLine, "}");
-                newLine++;
-            }
-            line.Insert(newLine, "}");
-        }
-        File.WriteAllLines(fileName, line);
-    }
+	/*public class KeyValues
+	{
+		public List<string> file;
+		~KeyValues()
+		{
+			file = null;
+		}
+		string BreakKeyValueDown(string value)
+		{
+			string broken = string.Empty;
+			StringBuilder builder = new StringBuilder();
+			char[] arr;
+			int quoteCheck = 0;
+			arr = value.ToCharArray();
+			for (int i = 0; i < arr.Length; i++)
+			{
+				if (arr[i] == '\"')
+				{
+					quoteCheck++;
+				}
+				if (quoteCheck < 3)
+				{
+					continue;
+				}
+				else if (quoteCheck >= 3 && arr[i] == '\"')
+				{
+					continue;
+				}
+				builder.Append(arr[i]);
+			}
+			broken = builder.ToString();
+			return broken;
+		}
 
-    public static void ChangeSoundSection(List<string> line, List<string> keyvalueName, List<string> floatSoundParams, List<int> intSoundParams, string baseKeyName, bool includeCooldowns = false, bool includePitchRandoms = false)
-    {
-        KeyValues kv = new KeyValues();
-        bool foundSomething = false;
-        for (int i = 0; i < line.Count; i++)
-        {
-            if (line[i].Contains("\"" + baseKeyName + "\"") && !line[i].Contains("//"))
-            {
-                bool noPaths = false;
-                int findPaths = i + 1;
-                while (!line[findPaths].Contains('}'))
-                {
-                    if (line[findPaths].Contains("\"paths\""))
-                    {
-                        noPaths = true;
-                        break;
-                    }
-                    findPaths++;
-                }
-                if (noPaths)
-                {
-                    return;
-                }
-            }
-        }
-        for (int i = 0; i < line.Count; i++)
-        {
-            if (line[i].Contains("\"" + baseKeyName + "_volume\"") || line[i].Contains("\"" + baseKeyName + "_channel\"")
-                || line[i].Contains("\"" + baseKeyName + "_flags\"") || line[i].Contains("\"" + baseKeyName + "_level\"")
-                || line[i].Contains("\"" + baseKeyName + "_pitch\"") || line[i].Contains("\"" + baseKeyName + "_cooldown_min\"")
-                || line[i].Contains("\"" + baseKeyName + "_cooldown_max\"") || line[i].Contains("\"" + baseKeyName + "_pitch_random_min\"")
-                || line[i].Contains("\"" + baseKeyName + "_pitch_random_max\""))
-            {
-                string keyValue = line[i];
-                if (line[i].Contains("_volume"))
-                {
-                    floatSoundParams[0] = kv.GetFloat(keyValue);
-                    line.RemoveAt(i);
-                    i--;
-                    foundSomething = true;
-                }
-                else if (line[i].Contains("_cooldown_min"))
-                {
-                    floatSoundParams[1] = kv.GetFloat(keyValue);
-                    line.RemoveAt(i);
-                    i--;
-                    foundSomething = true;
-                }
-                else if (line[i].Contains("_cooldown_max"))
-                {
-                    floatSoundParams[2] = kv.GetFloat(keyValue);
-                    line.RemoveAt(i);
-                    i--;
-                    foundSomething = true;
-                }
-                else if (line[i].Contains("_channel"))
-                {
-                    intSoundParams[0] = kv.GetNum(keyValue);
-                    line.RemoveAt(i);
-                    i--;
-                    foundSomething = true;
-                }
-                else if (line[i].Contains("_flags"))
-                {
-                    intSoundParams[1] = kv.GetNum(keyValue);
-                    line.RemoveAt(i);
-                    i--;
-                    foundSomething = true;
-                }
-                else if (line[i].Contains("_level"))
-                {
-                    intSoundParams[2] = kv.GetNum(keyValue);
-                    line.RemoveAt(i);
-                    i--;
-                    foundSomething = true;
-                }
-                else if (line[i].Contains("_pitch\""))
-                {
-                    intSoundParams[3] = kv.GetNum(keyValue);
-                    line.RemoveAt(i);
-                    i--;
-                    foundSomething = true;
-                }
-                else if (line[i].Contains("_pitch_random_min"))
-                {
-                    intSoundParams[4] = kv.GetNum(keyValue);
-                    line.RemoveAt(i);
-                    i--;
-                    foundSomething = true;
-                }
-                else if (line[i].Contains("_pitch_random_max"))
-                {
-                    intSoundParams[5] = kv.GetNum(keyValue);
-                    line.RemoveAt(i);
-                    i--;
-                    foundSomething = true;
-                }
-            }
-        }
-        List<int> itemIndex = new List<int>();
-        for (int i = 0; i < line.Count; i++)
-        {
-            if (line[i].Contains("\"" + baseKeyName + "\"") && !line[i].Contains("//") && !line[i + 2].Contains("\"volume\"") && !line[i + 2].Contains("\"channel\"")
-                && !line[i + 2].Contains("\"flags\"") && !line[i + 2].Contains("\"level\"") && !line[i + 2].Contains("\"pitch\"")
-                && !line[i + 2].Contains("\"cooldown_min\"") && !line[i + 2].Contains("\"cooldown_max\"") && !line[i + 2].Contains("\"pitch_random_min\"")
-                && !line[i + 2].Contains("\"pitch_random_max\"") && !line[i].Contains("_loop"))
-            {
-                if (baseKeyName == "sound_hitenemy")
-                {
+		public string GetProfileKeyWithDifficultySuffix(string key, Difficulty difficulty)
+		{
+			string value = string.Empty;
+			if (difficulty < Difficulty.Easy || difficulty > Difficulty.Max)
+			{
+				return string.Empty;
+			}
 
-                }
-                int iterations = 1;
-                int index = 1;
-                int startDelete = 0;
-                while (!line[i + iterations].Contains('}'))
-                {
-                    if (line[i + iterations].Contains('{'))
-                    {
-                        startDelete = i + iterations + 1;
-                    }
-                    if (itemIndex.Count == 0)
-                    {
-                        if (line[i + iterations].Contains("\"" + index.ToString() + "\""))
-                        {
-                            keyvalueName.Add(line[i + iterations]);
-                            line.RemoveAt(i + iterations);
-                            itemIndex.Add(index);
-                            index++;
-                            iterations--;
-                        }
-                    }
-                    else
-                    {
-                        for (int listIndex = 0; listIndex < itemIndex.Count; listIndex++)
-                        {
-                            if (line[i + iterations].Contains("\"" + itemIndex[listIndex].ToString() + "\""))
-                            {
-                                line[i + iterations] = line[i + iterations].Replace("\"" + itemIndex[listIndex].ToString() + "\"",
-                                    "\"" + index.ToString() + "\"");
-                                break;
-                            }
-                        }
-                        if (line[i + iterations].Contains("\"" + index.ToString() + "\""))
-                        {
-                            keyvalueName.Add(line[i + iterations]);
-                            line.RemoveAt(i + iterations);
-                            itemIndex.Add(index);
-                            index++;
-                            iterations--;
-                        }
-                        else
-                        {
-                            if (!line[i + iterations].Contains('{') && !line[i + iterations].Contains('}') && !line[i + iterations].Contains('\"'))
-                            {
-                                line.RemoveAt(i + iterations);
-                                iterations--;
-                            }
-                        }
-                    }
-                    iterations++;
-                }
-                bool deleteCurly = false;
-                bool finished = false;
-                bool values = false;
-                bool paths = false;
-                while (!finished)
-                {
-                    if (!deleteCurly)
-                    {
-                        line[startDelete] = "";
-                        startDelete--;
-                        deleteCurly = true;
-                    }
-                    else
-                    {
-                        if (!values)
-                        {
-                            if (intSoundParams[0] != 0)
-                            {
-                                line.Insert(startDelete, "\t\t\t\"channel\" \"" + intSoundParams[0] + "\"");
-                                startDelete++;
-                            }
-                            if (floatSoundParams[0] != "1.0" && floatSoundParams[0] != "1")
-                            {
-                                line.Insert(startDelete, "\t\t\t\"volume\" \"" + floatSoundParams[0] + "\"");
-                                startDelete++;
-                            }
-                            if (intSoundParams[1] != 0)
-                            {
-                                line.Insert(startDelete, "\t\t\t\"flags\" \"" + intSoundParams[1] + "\"");
-                                startDelete++;
-                            }
-                            if (intSoundParams[2] != 90)
-                            {
-                                line.Insert(startDelete, "\t\t\t\"level\" \"" + intSoundParams[2] + "\"");
-                                startDelete++;
-                            }
-                            if (intSoundParams[3] != 100)
-                            {
-                                line.Insert(startDelete, "\t\t\t\"pitch\" \"" + intSoundParams[3] + "\"");
-                                startDelete++;
-                            }
-                            if (floatSoundParams[1] != "1.5" && includeCooldowns)
-                            {
-                                line.Insert(startDelete, "\t\t\t\"cooldown_min\" \"" + floatSoundParams[1] + "\"");
-                                startDelete++;
-                            }
-                            if (floatSoundParams[2] != "1.5" && includeCooldowns)
-                            {
-                                line.Insert(startDelete, "\t\t\t\"cooldown_max\" \"" + floatSoundParams[2] + "\"");
-                                startDelete++;
-                            }
-                            if (intSoundParams[4] != 100 && includePitchRandoms)
-                            {
-                                line.Insert(startDelete, "\t\t\t\"pitch_random_min\" \"" + intSoundParams[4] + "\"");
-                                startDelete++;
-                            }
-                            if (intSoundParams[5] != 100 && includePitchRandoms)
-                            {
-                                line.Insert(startDelete, "\t\t\t\"pitch_random_min\" \"" + intSoundParams[5] + "\"");
-                                startDelete++;
-                            }
-                            startDelete--;
-                            values = true;
-                        }
-                        else
-                        {
-                            if (!paths)
-                            {
-                                if (foundSomething)
-                                {
-                                    startDelete++;
-                                }
-                                line.Insert(startDelete, "\t\t\t\"paths\"");
-                                startDelete++;
-                                line.Insert(startDelete, "\t\t\t{");
-                                paths = true;
-                            }
-                            else
-                            {
-                                for (int i2 = 0; i2 < keyvalueName.Count; i2++)
-                                {
-                                    keyvalueName[i2] = "\t" + keyvalueName[i2];
-                                    line.Insert(startDelete, keyvalueName[i2]);
-                                    startDelete++;
-                                }
-                                line.Insert(startDelete, "\t\t\t}");
-                                startDelete++;
-                                line.Insert(startDelete, "\t\t}");
-                                finished = true;
-                            }
-                        }
-                    }
-                    startDelete++;
-                }
-                break;
-            }
-        }
-    }
+			string name = this.GetName(key);
+			if (name == "")
+			{
+				name = key;
+			}
 
-    public static void RemoveUnnecessaryKeys(List<string> line, string baseKeyName, List<string> associatedKeys, KeyValues kv)
-    {
-        bool replace = false;
-        for (int i = 0; i < line.Count; i++)
-        {
-            if (line[i].Contains("\"" + baseKeyName + "\"") && !line[i].Contains("\"animation_"))
-            {
-                bool enabled = Convert.ToBoolean(kv.GetNum(line[i]));
-                if (!enabled)
-                {
-                    replace = true;
-                    break;
-                }
-            }
-        }
-        if (replace)
-        {
-            for (int i = 0; i < line.Count; i++)
-            {
-                for (int i2 = 0; i2 < associatedKeys.Count; i2++)
-                {
-                    if (line[i].Contains(associatedKeys[i2]))
-                    {
-                        line.RemoveAt(i);
-                        i--;
-                        if (!line[i].Contains('\"') && !line[i].Contains('{') && !line[i].Contains('}'))
-                        {
-                            line.RemoveAt(i);
-                            i--;
-                        }
-                    }
-                }
-            }
-        }
-    }
+			string[] suffixes = new string[] { "easy", "", "hard", "insane", "nightmare", "apollyon" };
+			if (difficulty != Difficulty.Normal)
+			{
+				value = name + "_" + suffixes[(int)difficulty];
+			}
+			else
+			{
+				value = name;
+			}
+
+			return value;
+		}
+
+		// Float
+		public void GetDifficultyValues(string baseKey, out float[] values, float[] defaultValues)
+		{
+			values = defaultValues;
+
+			string key;
+
+			for (int i = 0; i < (int)Difficulty.Max; i++)
+			{
+				key = GetProfileKeyWithDifficultySuffix(baseKey, (Difficulty)i);
+				string result = this.file.FirstOrDefault(s => s.Contains(key)) ?? string.Empty;
+				if (result != string.Empty)
+				{
+					float value = float.Parse(this.GetFloat(result));
+					values[i] = value;
+				}
+				else // Remember this for Sourcepawn
+				{
+					if (i > 0)
+					{
+						values[i] = values[i - 1];
+					}
+				}
+			}
+		}
+
+		// Int
+		public void GetDifficultyValues(string baseKey, out int[] values, int[] defaultValues)
+		{
+			values = defaultValues;
+
+			if (this.GetName(baseKey) != string.Empty)
+			{
+				int value = this.GetNum(baseKey);
+				for (int i = 0; i < (int)Difficulty.Max; i++)
+				{
+					values[i] = value;
+				}
+			}
+
+			string key;
+
+			for (int i = 0; i < (int)Difficulty.Max; i++)
+			{
+				key = GetProfileKeyWithDifficultySuffix(baseKey, (Difficulty)i);
+				string result = this.file.FirstOrDefault(s => s.Contains(key)) ?? string.Empty;
+				if (result != string.Empty)
+				{
+					int value = this.GetNum(key);
+					values[i] = value;
+				}
+			}
+		}
+
+		// Bool
+		public void GetDifficultyValues(string baseKey, out bool[] values, bool[] defaultValues)
+		{
+			values = defaultValues;
+
+			if (this.GetName(baseKey) != string.Empty)
+			{
+				bool value = this.GetBool(baseKey);
+				for (int i = 0; i < (int)Difficulty.Max; i++)
+				{
+					values[i] = value;
+				}
+			}
+
+			string key;
+
+			for (int i = 0; i < (int)Difficulty.Max; i++)
+			{
+				key = GetProfileKeyWithDifficultySuffix(baseKey, (Difficulty)i);
+				string result = this.file.FirstOrDefault(s => s.Contains(key)) ?? string.Empty;
+				if (result != string.Empty)
+				{
+					bool value = this.GetBool(key);
+					values[i] = value;
+				}
+			}
+		}
+
+		// String
+		public void GetDifficultyValues(string baseKey, out string[] values, string[] defaultValues)
+		{
+			values = defaultValues;
+
+			if (this.GetName(baseKey) != string.Empty)
+			{
+				string value = this.GetString(baseKey);
+				for (int i = 0; i < (int)Difficulty.Max; i++)
+				{
+					values[i] = value;
+				}
+			}
+
+			string key;
+
+			for (int i = 0; i < (int)Difficulty.Max; i++)
+			{
+				key = GetProfileKeyWithDifficultySuffix(baseKey, (Difficulty)i);
+				string result = this.file.FirstOrDefault(s => s.Contains(key)) ?? string.Empty;
+				if (result != string.Empty)
+				{
+					string value = this.GetString(key);
+					values[i] = value;
+				}
+			}
+		}
+
+		// Array
+		public void GetDifficultyValues(string baseKey, out float[][] values, float[][] defaultValues)
+		{
+			values = defaultValues;
+			float[] temp = new float[3];
+
+			if (this.GetName(baseKey) != string.Empty)
+			{
+				this.GetArray(baseKey, out temp, temp);
+				for (int i = 0; i < (int)Difficulty.Max; i++)
+				{
+					values[i] = temp;
+				}
+			}
+
+			string key;
+
+			for (int i = 0; i < (int)Difficulty.Max; i++)
+			{
+				key = GetProfileKeyWithDifficultySuffix(baseKey, (Difficulty)i);
+				string result = this.file.FirstOrDefault(s => s.Contains(key)) ?? string.Empty;
+				if (result != string.Empty)
+				{
+					this.GetArray(baseKey, out temp, temp);
+					values[i] = temp;
+				}
+			}
+		}
+
+		public void GetDifficultyValues(string baseKey, out int[][] values, int[][] defaultValues)
+		{
+			values = defaultValues;
+			int[] temp = new int[3];
+
+			if (this.GetName(baseKey) != string.Empty)
+			{
+				this.GetArray(baseKey, out temp, temp);
+				for (int i = 0; i < (int)Difficulty.Max; i++)
+				{
+					values[i] = temp;
+				}
+			}
+
+			string key;
+
+			for (int i = 0; i < (int)Difficulty.Max; i++)
+			{
+				key = GetProfileKeyWithDifficultySuffix(baseKey, (Difficulty)i);
+				string result = this.file.FirstOrDefault(s => s.Contains(key)) ?? string.Empty;
+				if (result != string.Empty)
+				{
+					this.GetArray(baseKey, out temp, temp);
+					values[i] = temp;
+				}
+			}
+		}
+
+		public string GetFloat(string key, string def = "0.0")
+		{
+			if (key == string.Empty)
+			{
+				return def;
+			}
+			string result = this.BreakKeyValueDown(key);
+			if (!result.Contains('.'))
+			{
+				result += ".0";
+			}
+			return result;
+		}
+
+		public int GetNum(string key, int def = 0)
+		{
+			if (key == string.Empty)
+			{
+				return def;
+			}
+			return int.Parse(this.BreakKeyValueDown(key));
+		}
+
+		public bool GetBool(string key, bool def = false)
+		{
+			if (key == string.Empty)
+			{
+				return def;
+			}
+			return int.Parse(this.BreakKeyValueDown(key)) != 0;
+		}
+
+		public string GetString(string key, string def = "")
+		{
+			if (key == string.Empty)
+			{
+				return def;
+			}
+			return this.BreakKeyValueDown(key);
+		}
+
+		// That's right, we can get 2D vectors, vectors, colors, or whatever
+		public void GetArray(string key, out float[] values, float[] def)
+		{
+			values = def;
+			if (key == string.Empty)
+			{
+				values = def;
+				return;
+			}
+			string value = this.BreakKeyValueDown(key);
+			string[] subKey = value.Split(' ');
+			int i = 0;
+			foreach (string index in subKey)
+			{
+				values[i] = float.Parse(index);
+				i++;
+			}
+		}
+
+		public void GetArray(string key, out int[] values, int[] def)
+		{
+			values = def;
+			if (key == string.Empty)
+			{
+				values = def;
+				return;
+			}
+			string value = this.BreakKeyValueDown(key);
+			string[] subKey = value.Split(' ');
+			int i = 0;
+			foreach (string index in subKey)
+			{
+				values[i] = int.Parse(index);
+				i++;
+			}
+		}
+
+		public string GetName(string key)
+		{
+			string broken = string.Empty;
+			StringBuilder builder = new StringBuilder();
+			char[] arr;
+			int quoteCheck = 0;
+			arr = key.ToCharArray();
+			for (int i = 0; i < arr.Length; i++)
+			{
+				if (arr[i] == '\"')
+				{
+					quoteCheck++;
+				}
+				if (quoteCheck == 0)
+				{
+					continue;
+				}
+				if (quoteCheck >= 2)
+				{
+					break;
+				}
+				if (arr[i] == '\"')
+				{
+					continue;
+				}
+				builder.Append(arr[i]);
+			}
+			broken = builder.ToString();
+			return broken;
+		}
+
+		public string FormatFloat(float value)
+		{
+			string result = value.ToString();
+			if (!result.Contains('.'))
+			{
+				result += ".0";
+			}
+			else
+			{
+				if (!char.IsNumber(result[result.Length - 1]))
+				{
+					result += "0";
+				}
+			}
+			return result;
+		}
+	}*/
+
+	public enum DamageType
+	{
+		Invalid = -1,
+		Jarate = 0,
+		Milk,
+		Gas,
+		Mark,
+		Ignite,
+		Stun,
+		Bleed,
+		Smite,
+		Random
+	};
+
+	public class ProfileSound
+	{
+		public List<string> Sounds;
+		public int Channel = 0;
+		public float Volume = 1.0f;
+		public int Flags = 0;
+		public int Level = 90;
+		public int Pitch = 100;
+		public float CooldownMin = 1.5f;
+		public float CooldownMax = 1.5f;
+		public int PitchRandomMin = 100;
+		public int PitchRandomMax = 100;
+		public float Radius = 850.0f;
+		public float Chance = 1.0f;
+
+		public ProfileSound()
+		{
+			this.Sounds = new List<string>();
+		}
+
+		~ProfileSound()
+		{
+			this.Sounds = null;
+		}
+
+		public void GetValues(KeyValues kv)
+		{
+			this.Channel = kv.GetKeyValue("channel", this.Channel);
+			this.Volume = kv.GetKeyValue("volume", this.Volume);
+			this.Flags = kv.GetKeyValue("flags", this.Flags);
+			this.Level = kv.GetKeyValue("level",	this.Level);
+			this.Pitch = kv.GetKeyValue("pitch", this.Pitch);
+			this.CooldownMin = kv.GetKeyValue("cooldown_min", this.CooldownMin);
+			this.CooldownMax = kv.GetKeyValue("cooldown_max", this.CooldownMax);
+			this.PitchRandomMin = kv.GetKeyValue("pitch_random_min", this.Pitch);
+			this.PitchRandomMax = kv.GetKeyValue("pitch_random_max", this.Pitch);
+			this.Chance = kv.GetKeyValue("chance", this.Chance);
+			kv.JumpToKey("paths");
+			for (int i = 1; ; i++)
+			{
+				string path = kv.GetKeyValue(i.ToString(), string.Empty);
+				if (path == string.Empty)
+				{
+					break;
+				}
+
+				this.Sounds.Add(path);
+			}
+			kv.GoBack();
+		}
+
+		void InsertKeyValue(ref List<string> lines, ref int index, string key)
+		{
+			lines.Insert(index, key);
+			index++;
+		}
+
+		public void InsertSection(string section, ref List<string> lines, ref int index, KeyValues kv)
+		{
+			InsertKeyValue(ref lines, ref index, "\"" + section + "\"");
+			InsertKeyValue(ref lines, ref index, "{");
+			bool whiteSpace = false;
+			if (this.Channel != 0)
+			{
+				InsertKeyValue(ref lines, ref index, "\"channel\" \"" + this.Channel + "\"");
+				whiteSpace = true;
+			}
+
+			if (this.Volume != 1.0f)
+			{
+				InsertKeyValue(ref lines, ref index, "\"volume\" \"" + kv.FormatFloat(this.Volume) + "\"");
+				whiteSpace = true;
+			}
+
+			if (this.Flags != 0)
+			{
+				InsertKeyValue(ref lines, ref index, "\"volume\" \"" + this.Flags + "\"");
+				whiteSpace = true;
+			}
+
+			if (this.Level != 90)
+			{
+				InsertKeyValue(ref lines, ref index, "\"level\" \"" + this.Level + "\"");
+				whiteSpace = true;
+			}
+
+			if (this.Pitch != 100)
+			{
+				InsertKeyValue(ref lines, ref index, "\"pitch\" \"" + this.Pitch + "\"");
+				whiteSpace = true;
+			}
+
+			if (this.CooldownMin != 1.5f)
+			{
+				InsertKeyValue(ref lines, ref index, "\"cooldown_min\" \"" + kv.FormatFloat(this.CooldownMin) + "\"");
+				whiteSpace = true;
+			}
+
+			if (this.CooldownMax != 1.5f)
+			{
+				InsertKeyValue(ref lines, ref index, "\"cooldown_max\" \"" + kv.FormatFloat(this.CooldownMax) + "\"");
+				whiteSpace = true;
+			}
+
+			if (this.PitchRandomMin != this.Pitch || this.PitchRandomMax != this.Pitch)
+			{
+				InsertKeyValue(ref lines, ref index, "\"pitch_random_min\" \"" + this.PitchRandomMin + "\"");
+				InsertKeyValue(ref lines, ref index, "\"pitch_random_max\" \"" + this.PitchRandomMax + "\"");
+				whiteSpace = true;
+			}
+
+			if (this.Chance != 1.5f)
+			{
+				InsertKeyValue(ref lines, ref index, "\"chance\" \"" + kv.FormatFloat(this.Chance) + "\"");
+				whiteSpace = true;
+			}
+
+			if (whiteSpace)
+			{
+				InsertKeyValue(ref lines, ref index, "");
+			}
+			InsertKeyValue(ref lines, ref index, "\"paths\"");
+			InsertKeyValue(ref lines, ref index, "{");
+			for (int i = 0; i < this.Sounds.Count; i++)
+			{
+				InsertKeyValue(ref lines, ref index, "\"" + (i + 1) + "\" \"" + this.Sounds[i] + "\"");
+			}
+			InsertKeyValue(ref lines, ref index, "}");
+
+			InsertKeyValue(ref lines, ref index, "}");
+		}
+	}
+
+	public class ProfileAnimation
+	{
+		public string[] Animations = new string[(int)Difficulty.Max];
+		public float[] Playbackrates = new float[(int)Difficulty.Max];
+		public float[] FootstepIntervals = new float[(int)Difficulty.Max];
+		public float[] Cycles = new float[(int)Difficulty.Max];
+		public float[] Durations = new float[(int)Difficulty.Max];
+	}
+
+	public class DamageEffectData
+	{
+		public DamageType Type;
+		public bool[] Enabled = new bool[(int)Difficulty.Max];
+		public string Particle;
+		public string Sound;
+		public bool AttachParticle;
+		public bool Beam;
+		public float[] Duration = new float[(int)Difficulty.Max];
+		public List<int> AttackIndexex;
+		public string Search, SearchAlt;
+
+		public bool MarkSilent;
+
+		public string StunFlag;
+		public float[] StunSlowdown = new float[(int)Difficulty.Max];
+
+		public float[] SmiteDamage = new float[(int)Difficulty.Max];
+		public int[] SmiteDamageType = new int[(int)Difficulty.Max];
+		public int[] SmiteColor = { 255, 255, 255, 255 };
+		public bool SmiteMessage;
+		public string SmiteSound;
+
+		public DamageEffectData(DamageType type)
+		{
+			this.Type = type;
+			this.SearchAlt = string.Empty;
+			this.Search = string.Empty;
+			this.Sound = string.Empty;
+			this.Particle = string.Empty;
+			this.AttackIndexex = new List<int>();
+			this.AttackIndexex.Add(1);
+			this.AttachParticle = true;
+			this.SmiteSound = ")ambient/explosions/explode_9.wav";
+			this.StunFlag = "slow";
+
+			for (int i = 0; i < 4; i++)
+			{
+				this.SmiteColor[i] = 255;
+			}
+
+			for (int i = 0; i < (int)Difficulty.Max; i++)
+			{
+				this.Enabled[i] = true;
+				this.Duration[i] = 8.0f;
+				this.StunSlowdown[i] = 0.5f;
+				this.SmiteDamage[i] = 9001.0f;
+				this.SmiteDamageType[i] = 1048576;
+			}
+		}
+
+		~DamageEffectData()
+		{
+			this.AttackIndexex = null;
+		}
+	}
+
+	public class ShockwaveData
+	{
+		public bool Enabled = false;
+		public float[] Height = new float[(int)Difficulty.Max];
+		public float[] Range = new float[(int)Difficulty.Max];
+		public float[] DrainAmount = new float[(int)Difficulty.Max];
+		public float[] Force = new float[(int)Difficulty.Max];
+		public bool Stun;
+		public float[] StunDuration = new float[(int)Difficulty.Max];
+		public float[] StunSlowdown = new float[(int)Difficulty.Max];
+		public float Width1;
+		public float Width2;
+		public float Amplitude;
+		public int[] Color1 = new int[4];
+		public int[] Color2 = new int[4];
+		public string BeamSprite;
+		public string HaloSprite;
+
+		public List<int> AttackIndexex;
+
+		public ShockwaveData()
+		{
+			for (int i = 0; i < 3; i++)
+			{
+				this.Color1[i] = 128;
+				this.Color2[i] = 255;
+			}
+
+			for (int i = 0; i < (int)Difficulty.Max; i++)
+			{
+				this.Height[i] = 80;
+				this.Range[i] = 200;
+				this.Force[i] = 600;
+				this.DrainAmount[i] = 0;
+				this.StunDuration[i] = 2;
+				this.StunSlowdown[i] = 0.7f;
+			}
+
+			this.Width1 = 40;
+			this.Width2 = 20;
+
+			this.Amplitude = 5;
+
+			this.Color1[3] = 255;
+			this.Color2[3] = 255;
+			this.BeamSprite = "sprites/laser.vmt";
+			this.HaloSprite = "sprites/halo01.vmt";
+			this.AttackIndexex = new List<int>();
+			this.AttackIndexex.Add(1);
+		}
+
+		~ShockwaveData()
+		{
+			this.AttackIndexex = null;
+		}
+	}
+
+	public class CloakData
+	{
+		public bool Enabled = false;
+		public float[] CloakRange = new float[(int)Difficulty.Max];
+		public float[] DecloakRange = new float[(int)Difficulty.Max];
+		public float[] CloakDuration = new float[(int)Difficulty.Max];
+		public float[] Cooldown = new float[(int)Difficulty.Max];
+		public float[] SpeedMultiplier = new float[(int)Difficulty.Max];
+
+		public int[] RenderColor = new int[4];
+		public int RenderMode = 1;
+		public string CloakParticle = "drg_cow_explosioncore_charged_blue";
+		public string CloakOnSound = ")weapons/medi_shield_deploy.wav";
+		public string CloakOffSound = ")weapons/medi_shield_retract.wav";
+
+		public CloakData()
+		{
+			for (int i = 0; i < (int)Difficulty.Max; i++)
+			{
+				this.CloakRange[i] = 350.0f;
+				this.DecloakRange[i] = 150.0f;
+				this.CloakDuration[i] = 10.0f;
+				this.Cooldown[i] = 8.0f;
+				this.SpeedMultiplier[i] = 1.0f;
+			}
+			for (int i = 0; i < 4; i++)
+			{
+				this.RenderColor[i] = 0;
+			}
+		}
+	}
+
+	public class RageData
+	{
+		public float PercentThreshold = 0.75f;
+		public bool IncreaseDifficulty = true;
+
+		public bool Heal = false;
+		public bool CloakToHeal = false;
+		public float FleeRange = 1024.0f;
+		public float HealAmount = 0.5f;
+		public float HealDelay = 0.0f;
+		public float HealDuration = 1.0f;
+
+		public ProfileSound StartSounds;
+		public ProfileSound HealSounds;
+
+		public RageData()
+		{
+			StartSounds = new ProfileSound();
+			HealSounds = new ProfileSound();
+		}
+	}
+
+	public class CopyData
+	{
+		public bool[] Enabled = new bool[(int)Difficulty.Max];
+		public int[] MaxCopies = new int[(int)Difficulty.Max];
+		public float[] TeleportDistance = new float[(int)Difficulty.Max];
+		public bool[] Fakes = new bool[(int)Difficulty.Max];
+
+		public CopyData()
+		{
+			for (int i = 0; i < (int)Difficulty.Max; i++)
+			{
+				this.Enabled[i] = false;
+				this.MaxCopies[i] = 1;
+				this.TeleportDistance[i] = 800.0f;
+				this.Fakes[i] = false;
+			}
+		}
+	}
+
+	public class AutoChaseData
+	{
+		public bool[] Enabled = new bool[(int)Difficulty.Max];
+		public int[] Threshold = new int[(int)Difficulty.Max];
+		public bool[] Sprinters = new bool[(int)Difficulty.Max];
+		public int[] AddOnStateChange = new int[(int)Difficulty.Max];
+		public int[] AddFootsteps = new int[(int)Difficulty.Max];
+		public int[] AddLoudFootsteps = new int[(int)Difficulty.Max];
+		public int[] AddQuietFootsteps = new int[(int)Difficulty.Max];
+		public int[] AddVoice = new int[(int)Difficulty.Max];
+		public int[] AddWeapon = new int[(int)Difficulty.Max];
+
+		public AutoChaseData()
+		{
+			for (int i = 0; i < (int)Difficulty.Max; i++)
+			{
+				this.Enabled[i] = false;
+				this.Threshold[i] = 100;
+				this.Sprinters[i] = false;
+				this.AddOnStateChange[i] = 0;
+				this.AddFootsteps[i] = 2;
+				this.AddLoudFootsteps[i] = 2;
+				this.AddQuietFootsteps[i] = 0;
+				this.AddVoice[i] = 8;
+				this.AddWeapon[i] = 4;
+			}
+		}
+	}
 }
